@@ -54,18 +54,17 @@
 //PREPROCESOR
 #define UI_PLAYER1_DIODE_ON		HAL_GPIO_WritePin(GPIOB, GPIO_PIN_12, GPIO_PIN_SET)		//Zapalenie diody przycisku 1
 #define UI_PLAYER1_DIODE_OFF	HAL_GPIO_WritePin(GPIOB, GPIO_PIN_12, GPIO_PIN_RESET)	//Zgaszenie diody przycisku 1
-#define DEBUG_DIODE1_ON			HAL_GPIO_WritePin(GPIOC, GPIO_PIN_8, GPIO_PIN_SET)		//Zapalenie niebieskiej diody na p³ytce
-#define DEBUG_DIODE2_OFF		HAL_GPIO_WritePin(GPIOC, GPIO_PIN_8, GPIO_PIN_RESET)	//Zapalenie niebieskiej diody na p³ytce
 
 #define UI_PLAYER2_DIODE_ON		HAL_GPIO_WritePin(GPIOB, GPIO_PIN_14, GPIO_PIN_SET)		//Zapalenie diody przycisku 2
 #define UI_PLAYER2_DIODE_OFF	HAL_GPIO_WritePin(GPIOB, GPIO_PIN_14, GPIO_PIN_RESET)	//Zgaszenie diody przycisku 2
+
+#define DEBUG_DIODE1_ON			HAL_GPIO_WritePin(GPIOC, GPIO_PIN_8, GPIO_PIN_SET)		//Zapalenie niebieskiej diody na p³ytce
+#define DEBUG_DIODE2_OFF		HAL_GPIO_WritePin(GPIOC, GPIO_PIN_8, GPIO_PIN_RESET)	//Zapalenie niebieskiej diody na p³ytce
 
 
 //ZMIENNE GLOBALNE
 int _currentPlayer = 1;	//Zmienna oznaczaj¹ca któremu z graczy up³ywa czas
 _Bool _pause = 0;			//Zmienna wyznaczaj¹ca pauzê w pomiarze czasu
-
-
 
 
 /* USER CODE END PV */
@@ -99,12 +98,12 @@ void switchPlayers()	//Funkcja zmienaj¹ca któremu graczowi ma up³ywac czas
 
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) //Przerwania GPIO
 {
-   	if(GPIO_Pin == GPIO_PIN_10)	//Wciœniêcie przycisku START
+   	if(GPIO_Pin == GPIO_PIN_10)					//Wciœniêcie przycisku START
    	{
-   		HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_8);	//Przycisk skacze!!!
+   		HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_8);	//Przycisk p³ywa!!!
    	}
 
-   	else if(GPIO_Pin == GPIO_PIN_11)	//Wciœniêcie przycisku PLAYER1
+   	else if(GPIO_Pin == GPIO_PIN_11)			//Wciœniêcie przycisku PLAYER1
    	{
 
    			if(_currentPlayer == 1)
@@ -112,7 +111,7 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) //Przerwania GPIO
 
    	}
 
-   	else if(GPIO_Pin == GPIO_PIN_13)	//Wciœniêcie przycisku PLAYER2
+   	else if(GPIO_Pin == GPIO_PIN_13)			//Wciœniêcie przycisku PLAYER2
    	{
    			if(_currentPlayer == 2)
    				switchPlayers();
