@@ -62,8 +62,21 @@
 #define DEBUG_DIODE2_OFF		HAL_GPIO_WritePin(GPIOC, GPIO_PIN_8, GPIO_PIN_RESET)	//Zapalenie niebieskiej diody na p³ytce
 
 
+
+//STRUKTURA CZASU
+struct _time
+{
+	uint8_t hours;
+	uint8_t minutes;
+	uint8_t seconds;
+	uint16_t miliseconds;
+};
+
+
+
 //ZMIENNE GLOBALNE
-int _currentPlayer = 1;	//Zmienna oznaczaj¹ca któremu z graczy up³ywa czas
+uint8_t _currentPlayer = 1;	//Zmienna oznaczaj¹ca któremu z graczy up³ywa czas
+uint8_t _increment = 0;		//Zmienna oznaczaj¹ca dodawany czas po wciœniêciu przycisku w sekundach
 _Bool _pause = 0;			//Zmienna wyznaczaj¹ca pauzê w pomiarze czasu
 
 
