@@ -39,6 +39,7 @@
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 #include "stm32l1xx_hal.h"
+#include "stm32_tm1637.h"
 
 /* USER CODE BEGIN Includes */
 
@@ -54,19 +55,20 @@
 //PREPROCESOR
 #define UI_PLAYER1_DIODE_ON		HAL_GPIO_WritePin(GPIOB, GPIO_PIN_12, GPIO_PIN_SET)		//Zapalenie diody przycisku 1
 #define UI_PLAYER1_DIODE_OFF	HAL_GPIO_WritePin(GPIOB, GPIO_PIN_12, GPIO_PIN_RESET)	//Zgaszenie diody przycisku 1
+#define UI_PLAYER1_BUTTON		GPIO_PIN_11												//Uchwyt przycisku gracza 1
 
 #define UI_PLAYER2_DIODE_ON		HAL_GPIO_WritePin(GPIOB, GPIO_PIN_14, GPIO_PIN_SET)		//Zapalenie diody przycisku 2
 #define UI_PLAYER2_DIODE_OFF	HAL_GPIO_WritePin(GPIOB, GPIO_PIN_14, GPIO_PIN_RESET)	//Zgaszenie diody przycisku 2
+#define UI_PLAYER2_BUTTON		GPIO_PIN_13												//Uchwyt przycisku gracza 2
 
-#define DEBUG_DIODE1_ON			HAL_GPIO_WritePin(GPIOC, GPIO_PIN_8, GPIO_PIN_SET)		//Zapalenie niebieskiej diody na p³ytce
-#define DEBUG_DIODE2_OFF		HAL_GPIO_WritePin(GPIOC, GPIO_PIN_8, GPIO_PIN_RESET)	//Zapalenie niebieskiej diody na p³ytce
+#define DEBUG_DIODE1_ON			HAL_GPIO_WritePin(GPIOC, GPIO_PIN_8, GPIO_PIN_SET)		//Zapalenie niebieskiej diody na plytce
+#define DEBUG_DIODE1_OFF		HAL_GPIO_WritePin(GPIOC, GPIO_PIN_8, GPIO_PIN_RESET)	//Zapalenie niebieskiej diody na plytce
 
 
 
 //STRUKTURA CZASU
 struct _time
 {
-	uint8_t hours;
 	uint8_t minutes;
 	uint8_t seconds;
 	uint16_t miliseconds;
@@ -75,9 +77,9 @@ struct _time
 
 
 //ZMIENNE GLOBALNE
-uint8_t _currentPlayer = 1;	//Zmienna oznaczaj¹ca któremu z graczy up³ywa czas
-uint8_t _increment = 0;		//Zmienna oznaczaj¹ca dodawany czas po wciœniêciu przycisku w sekundach
-_Bool _pause = 0;			//Zmienna wyznaczaj¹ca pauzê w pomiarze czasu
+uint8_t _currentPlayer = 1;	//Zmienna oznaczajaca ktÃ³remu z graczy uplywa czas
+uint8_t _increment = 0;		//Zmienna oznaczajaca dodawany czas po wcisnieciu przycisku w sekundach
+_Bool _pause = 0;			//Zmienna wyznaczajaca pauze w pomiarze czasu
 
 
 /* USER CODE END PV */
@@ -90,7 +92,7 @@ static void MX_NVIC_Init(void);
 /* USER CODE BEGIN PFP */
 /* Private function prototypes -----------------------------------------------*/
 
-void switchPlayers()	//Funkcja zmienaj¹ca któremu graczowi ma up³ywac czas
+void switchPlayers()	//Funkcja zmienajaca ktÃ³remu graczowi ma uplywac czas
 {
 	if(_currentPlayer == 1)
 	{
@@ -111,12 +113,12 @@ void switchPlayers()	//Funkcja zmienaj¹ca któremu graczowi ma up³ywac czas
 
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) //Przerwania GPIO
 {
-   	if(GPIO_Pin == GPIO_PIN_10)					//Wciœniêcie przycisku START
+   	if(GPIO_Pin == GPIO_PIN_10)					//Wcisniecie przycisku START
    	{
-   		HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_8);	//Przycisk p³ywa!!!
+   		HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_8);	//Przycisk pÅ‚ywa!!!
    	}
 
-   	else if(GPIO_Pin == GPIO_PIN_11)			//Wciœniêcie przycisku PLAYER1
+   	else if(GPIO_Pin == UI_PLAYER1_BUTTON)			//Wcisniecie przycisku PLAYER1
    	{
 
    			if(_currentPlayer == 1)
@@ -124,7 +126,7 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) //Przerwania GPIO
 
    	}
 
-   	else if(GPIO_Pin == GPIO_PIN_13)			//Wciœniêcie przycisku PLAYER2
+   	else if(GPIO_Pin == UI_PLAYER2_BUTTON)			//Wcisniecie przycisku PLAYER2
    	{
    			if(_currentPlayer == 2)
    				switchPlayers();
