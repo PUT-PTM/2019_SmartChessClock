@@ -39,13 +39,13 @@
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 #include "stm32l1xx_hal.h"
-#include "stm32_tm1637.h"
 
 /* USER CODE BEGIN Includes */
 
 /* USER CODE END Includes */
 
 /* Private variables ---------------------------------------------------------*/
+TIM_HandleTypeDef htim2;
 
 /* USER CODE BEGIN PV */
 /* Private variables ---------------------------------------------------------*/
@@ -61,6 +61,7 @@
 
 #define DEBUG_DIODE1_ON			HAL_GPIO_WritePin(GPIOC, GPIO_PIN_8, GPIO_PIN_SET)		//Zapalenie niebieskiej diody na plytce
 #define DEBUG_DIODE1_OFF		HAL_GPIO_WritePin(GPIOC, GPIO_PIN_8, GPIO_PIN_RESET)	//Zapalenie niebieskiej diody na plytce
+#define UI_PAUSE_BUTTON			GPIO_PIN_10												//Uchwyt przycisku start/stop
 
 //STRUKTURA CZASU
 struct _time
@@ -83,10 +84,10 @@ const struct _preset presets[] =	//{min, sec, ms, increment}
 };
 
 //ZMIENNE GLOBALNE
-uint8_t _currentPlayer;	//Zmienna oznaczajaca któremu z graczy uplywa czas
-uint8_t _increment;		//Zmienna oznaczajaca dodawany czas po wcisnieciu przycisku w sekundach
-_Bool _pause;			//Zmienna wyznaczajaca pauze w pomiarze czasu
-_Bool gameOver;			//Zmienna wyznaczająca koniec gry w przypadku gdy jednemu z graczy upłynie czas
+uint8_t _currentPlayer;		//Zmienna oznaczajaca któremu z graczy uplywa czas
+uint8_t _increment;			//Zmienna oznaczajaca dodawany czas po wcisnieciu przycisku w sekundach
+_Bool _pause = 1;			//Zmienna wyznaczajaca pauze w pomiarze czasu
+_Bool _gameOver = 0;		//Zmienna wyznaczająca koniec gry w przypadku gdy jednemu z graczy upłynie czas
 
 struct _time PLAYER1_TIME;	//Struktura przechowująca informacje o czasie gracza nr 1
 struct _time PLAYER2_TIME;	//Struktura przechowująca informacje o czasie gracza nr 2
@@ -97,13 +98,14 @@ struct _time PLAYER2_TIME;	//Struktura przechowująca informacje o czasie gracza
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
+static void MX_TIM2_Init(void);
 static void MX_NVIC_Init(void);
 
 /* USER CODE BEGIN PFP */
 /* Private function prototypes -----------------------------------------------*/
 
-/* FUNKCJE MIERZĄCE/OBSŁUGUJĄCE CZAS---------------------------------------------------------------*/
-void setClocks(int presetIndex)		//Funkcja ustawia czas obu zegarów z numeru presetu
+/* FUNKCJE MIERZĄCE/OBS�?UGUJĄCE CZAS---------------------------------------------------------------*/
+void setClocks(int presetIndex)						//Funkcja ustawia czas obu zegarów z numeru presetu
 {
 	presetIndex--;
 
@@ -118,7 +120,7 @@ void setClocks(int presetIndex)		//Funkcja ustawia czas obu zegarów z numeru pr
 	_increment = presets[presetIndex].increment;
 }
 
-int decrementClock(struct _time* clock)		//Funkcja pomniejsza wartośc struktury czasu o 1ms - jeżeli czas upłynął całkowicie - funkcja zwraca wartośc 1
+int decrement(struct _time* clock)					//Funkcja pomniejsza wartośc struktury czasu o 1ms - jeżeli czas upłynął całkowicie - funkcja zwraca wartośc 1
 {
 	if(clock->miliseconds == 0)
 	{
@@ -141,7 +143,7 @@ int decrementClock(struct _time* clock)		//Funkcja pomniejsza wartośc struktury
 	return 0;
 }
 
-void incrementClock(struct _time* clock, int secondInc)	//Funkcja inkrementująca dany zegar o podaną liczbę sekund
+void increment(struct _time* clock, int secondInc)	//Funkcja inkrementująca dany zegar o podaną liczbę sekund
 {
 	if(secondInc == 0)	//Jeżeli inkrementacja jest "zerowa"
 		return;
@@ -155,91 +157,144 @@ void incrementClock(struct _time* clock, int secondInc)	//Funkcja inkrementując
 	}
 }
 
-void clockTick()	//FUNCKJA ZMNIEJSZAJĄCA CZAS ZEGARA WYWOŁYWANA W PRZERWANIU TIMERA
+void clockTick()									//FUNCKJA ZMNIEJSZAJĄCA CZAS ZEGARA WYWO�?YWANA W PRZERWANIU TIMERA
 {
 	if(_currentPlayer == 1)
 	{
-		if(decrementClock(&PLAYER1_TIME) == 0)	//Jeżeli graczowi jeszcze nie skończył się czas
+		if(decrement(&PLAYER1_TIME) == 0)	//Jeżeli graczowi jeszcze nie skończył się czas
 		{
 
 		}
-		else	//Graczowi skończył się czas
+		else	//Graczowi 1 skończył się czas
 		{
-
+				_pause = 1;
+				_gameOver = 1;
+				HAL_TIM_Base_Stop_IT(&htim2);
 		}
 	}
 
 	else if(_currentPlayer == 1)
 	{
-		if(decrementClock(&PLAYER2_TIME) == 0)	//Jeżeli graczowi jeszcze nie skończył się czas
+		if(decrement(&PLAYER2_TIME) == 0)	//Jeżeli graczowi jeszcze nie skończył się czas
 		{
 
 		}
-		else	//Graczowi skończył się czas
+		else	//Graczowi 2 skończył się czas
 		{
-
+				_pause = 1;
+				_gameOver = 1;
+				HAL_TIM_Base_Stop_IT(&htim2);
 		}
 	}
 }
 
-void clockSwitch()	//FUNCKJA INKREMENTUJĄCA CZAS ZEGARA WYWOŁYWANA W PRZERWANIU PRZYCISKÓW
+void clockIncrement()								//FUNCKJA INKREMENTUJĄCA CZAS ZEGARA WYWO�?YWANA W PRZERWANIU PRZYCISKÓW
 {
+	if(_pause == 0)	//Jeżeli gra jest spauzowania nie wykonujemy inkrementacji
+	{
+
 	if(_currentPlayer == 1)
 		{
-			incrementClock(&PLAYER1_TIME, _increment);
+			increment(&PLAYER1_TIME, _increment);
 		}
 
 	else if(_currentPlayer == 1)
 		{
-			incrementClock(&PLAYER2_TIME, _increment);
+			increment(&PLAYER2_TIME, _increment);
 		}
+
+	}
 }
 
 /*-------------------------------------------------------------------------------------------------
 FUNKCJE UI I PRZERWANIA--------------------------------------------------------------------------*/
-void switchPlayers()	//Funkcja zmienajaca któremu graczowi ma uplywac czas
+void switchPlayers()				//Funkcja zmienajaca któremu graczowi ma uplywac czas
 {
-	if(_currentPlayer == 1)
+	if(_gameOver == 0)				//Jeżeli gra nie dobiegła jeszcze końca
 	{
-		_currentPlayer = 2;
-		UI_PLAYER1_DIODE_OFF;
-		UI_PLAYER2_DIODE_ON;
+		if(_currentPlayer == 1)
+		{
+			_currentPlayer = 2;
+			UI_PLAYER1_DIODE_OFF;
+			UI_PLAYER2_DIODE_ON;
 
-		clockSwitch();
-		return;
-	}
+			clockIncrement();		//Inkrementacja czasu jest w osobnej funkcji żeby umożliwic zmianę graczy na pauzie bez dodawania czasu
+			return;
+		}
 
-	if(_currentPlayer == 2)
-	{
-		UI_PLAYER1_DIODE_ON;
-		UI_PLAYER2_DIODE_OFF;
-		_currentPlayer = 1;
+		if(_currentPlayer == 2)
+		{
+			UI_PLAYER1_DIODE_ON;
+			UI_PLAYER2_DIODE_OFF;
+			_currentPlayer = 1;
 
-		clockSwitch();
-		return;
+			clockIncrement();
+			return;
+		}
 	}
 }
 
-void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) //Przerwania GPIO
+void switchTimer()				//Funkcja przełączająca timer podczas pauzowania/wznawiania gry
 {
-   	if(GPIO_Pin == GPIO_PIN_10)					//Wcisniecie przycisku START
+	if(_gameOver == 0)
+	{
+	   	HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_8);
+
+	   	if(_pause == 1)								//Wnowienie gry po zatrzymaniu
+	   	{
+	   		_pause = 0;
+	   		HAL_TIM_Base_Start_IT(&htim2);			//Wznowienie timera odmierzającego czas
+	   	}
+
+	   	else if(_pause == 0)						//Spauzowanie gry
+	   	{
+	   		_pause = 1;
+	   		HAL_TIM_Base_Stop_IT(&htim2);			//Zatrzymanie timera odmierzającego czas
+	  	}
+	 }
+}
+
+void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) 		//Przerwania GPIO
+{
+   	if(GPIO_Pin == UI_PAUSE_BUTTON)						//Wcisniecie przycisku START/STOP
    	{
-   		HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_8);
-   		_pause = !_pause;						//Przełączenie pauzy
+   		usleep(10000);	//Debouncing
+   		if(HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_10) == GPIO_PIN_SET)
+   			switchTimer();
    	}
 
    	else if(GPIO_Pin == UI_PLAYER1_BUTTON)			//Wcisniecie przycisku PLAYER1
    	{
+   		usleep(10000);	//Debouncing
+   		if(HAL_GPIO_ReadPin(GPIOB, UI_PLAYER1_BUTTON) == GPIO_PIN_SET)
+   		{
+
    			if(_currentPlayer == 1)
    				switchPlayers();
+   		}
    	}
 
    	else if(GPIO_Pin == UI_PLAYER2_BUTTON)			//Wcisniecie przycisku PLAYER2
    	{
-   			if(_currentPlayer == 2)
-   				switchPlayers();
+   		usleep(10000);	//Debouncing
+   		if(HAL_GPIO_ReadPin(GPIOB, UI_PLAYER2_BUTTON) == GPIO_PIN_SET)
+   		{
+
+   		   if(_currentPlayer == 2)
+   			   switchPlayers();
+   		}
    	}
 }
+
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)	//Przerwania Timerów
+{
+   	if(htim->Instance == TIM2)	//Przepełnienie timera nr 2 -> upłynięcie milisekundy
+   	{
+         clockTick();
+    }
+}
+/* USER CODE END PFP */
+
 
 //-------------------------------------------------------------------------------------------------
 
@@ -278,6 +333,7 @@ int main(void)
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
+  MX_TIM2_Init();
 
   /* Initialize interrupts */
   MX_NVIC_Init();
@@ -285,8 +341,8 @@ int main(void)
 
 
   //INICJALIZACJA ZEGARA---------------------------------------------------------------------------
-  _currentPlayer = 1;
   setClocks(5);
+  _currentPlayer = 1;
   UI_PLAYER1_DIODE_ON;
   //WYBÓR PRESETU POWINIEN NASTĄPIC PÓŹNIEJ, W CELACH TESTOWYCH IGNORUJEMY WYBÓR PRESETU
 
@@ -365,9 +421,44 @@ void SystemClock_Config(void)
   */
 static void MX_NVIC_Init(void)
 {
+  /* TIM2_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(TIM2_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(TIM2_IRQn);
   /* EXTI15_10_IRQn interrupt configuration */
   HAL_NVIC_SetPriority(EXTI15_10_IRQn, 0, 0);
   HAL_NVIC_EnableIRQ(EXTI15_10_IRQn);
+}
+
+/* TIM2 init function */
+static void MX_TIM2_Init(void)
+{
+
+  TIM_ClockConfigTypeDef sClockSourceConfig;
+  TIM_MasterConfigTypeDef sMasterConfig;
+
+  htim2.Instance = TIM2;
+  htim2.Init.Prescaler = 31;
+  htim2.Init.CounterMode = TIM_COUNTERMODE_UP;
+  htim2.Init.Period = 999;
+  htim2.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+  if (HAL_TIM_Base_Init(&htim2) != HAL_OK)
+  {
+    _Error_Handler(__FILE__, __LINE__);
+  }
+
+  sClockSourceConfig.ClockSource = TIM_CLOCKSOURCE_INTERNAL;
+  if (HAL_TIM_ConfigClockSource(&htim2, &sClockSourceConfig) != HAL_OK)
+  {
+    _Error_Handler(__FILE__, __LINE__);
+  }
+
+  sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
+  sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
+  if (HAL_TIMEx_MasterConfigSynchronization(&htim2, &sMasterConfig) != HAL_OK)
+  {
+    _Error_Handler(__FILE__, __LINE__);
+  }
+
 }
 
 /** Configure pins as 
