@@ -7,14 +7,19 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
 
+import org.w3c.dom.Text;
+
 public class MainActivity extends AppCompatActivity {
 
+    private TimePreset currentTP = new TimePreset(300000, 3000);
     private boolean running = false;
     private boolean turn = false;
     private int p1moves = 0;
     private int p2moves = 0;
-    private long p1time = 300000;
-    private long p2time = 300000;
+    private long p1time = currentTP.getOverallTime();
+    private long p2time = currentTP.getOverallTime();
+    private long p1lastturn = 0;
+    private long p2lastturn = 0;
 
     private String displayTime(long time)
     {
@@ -29,14 +34,23 @@ public class MainActivity extends AppCompatActivity {
             {
                 int minutes = (int)time/60000;
                 int seconds = (int) (time-(60000*minutes))/1000;
-                buffer = minutes + ":" + seconds;
+                if(seconds < 10)
+                    buffer = minutes + ":0" + seconds;
+                else
+                    buffer = minutes + ":" + seconds;
                 return buffer;
             }
             else
             {
                 int seconds = (int)time/1000;
                 int miliseconds = (int)(time - seconds*1000);
-                buffer = seconds + "." + miliseconds;
+                buffer = seconds + ".";
+                if(miliseconds < 100)
+                    buffer+="0";
+                if(miliseconds < 10)
+                    buffer+="0";
+                buffer += miliseconds;
+                return  buffer;
             }
         }
         return buffer;
@@ -46,6 +60,9 @@ public class MainActivity extends AppCompatActivity {
     TextView p2Time;
     TextView p1Moves;
     TextView p2Moves;
+    TextView p1LastTurn;
+    TextView p2LastTurn;
+    TextView TimePreset;
     Button startStop;
     Button Turn;
     CountDownTimer p1;
@@ -59,10 +76,17 @@ public class MainActivity extends AppCompatActivity {
         p2Time = (TextView) findViewById(R.id.Time_P2);
         p1Moves = (TextView) findViewById(R.id.Moves_P1);
         p2Moves = (TextView) findViewById(R.id.Moves_P2);
+        p1LastTurn = (TextView) findViewById(R.id.p1LastTurn);
+        p2LastTurn = (TextView) findViewById(R.id.p2LastTurn);
+        TimePreset = (TextView) findViewById(R.id.PresetDisplay);
         startStop = (Button) findViewById(R.id.Start_Stop);
         Turn = (Button) findViewById(R.id.Turn);
+        //Reset = (Button) findViewById(R.id.Reset);
         p1Time.setText(displayTime(p1time));
         p2Time.setText(displayTime(p2time));
+        p1LastTurn.setText("(-" + displayTime(0) + ")");
+        p2LastTurn.setText("(-" + displayTime(0) + ")");
+        TimePreset.setText(displayTime(currentTP.getOverallTime()) + " + " + displayTime(currentTP.getIncrementation()));
         startStop.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -83,6 +107,8 @@ public class MainActivity extends AppCompatActivity {
                             public void onTick(long millisUntilFinished) {
                                 p1time = millisUntilFinished;
                                 p1Time.setText(displayTime(millisUntilFinished));
+                                p1lastturn += 10;
+                                p1LastTurn.setText("(-" + displayTime(p1lastturn) + ")");
                             }
 
                             @Override
@@ -90,8 +116,11 @@ public class MainActivity extends AppCompatActivity {
                                 running = false;
                                 p1time = 0;
                                 p1Time.setText(displayTime(0));
+                                p1lastturn += 10;
+                                p1LastTurn.setText("(-" + displayTime(p1lastturn) + ")");
                             }
                         };
+                        p1.start();
                     }
                     else
                     {
@@ -100,6 +129,8 @@ public class MainActivity extends AppCompatActivity {
                             public void onTick(long millisUntilFinished) {
                                 p2time = millisUntilFinished;
                                 p2Time.setText(displayTime(millisUntilFinished));
+                                p2lastturn += 10;
+                                p2LastTurn.setText("(-" + displayTime(p2lastturn) + ")");
                             }
 
                             @Override
@@ -107,8 +138,11 @@ public class MainActivity extends AppCompatActivity {
                                 running = false;
                                 p2time = 0;
                                 p2Time.setText(displayTime(0));
+                                p2lastturn += 10;
+                                p2LastTurn.setText("(-" + displayTime(p2lastturn) + ")");
                             }
                         };
+                        p2.start();
                     }
                 }
             }
@@ -124,11 +158,16 @@ public class MainActivity extends AppCompatActivity {
                         p2.cancel();
                         p2moves ++;
                         p2Moves.setText(Long.toString(p2moves));
+                        p2time += currentTP.getIncrementation();
+                        p2Time.setText(displayTime(p2time));
+                        p1lastturn = 0;
                         p1 = new CountDownTimer(p1time, 10) {
                             @Override
                             public void onTick(long millisUntilFinished) {
                                 p1time = millisUntilFinished;
                                 p1Time.setText(displayTime(millisUntilFinished));
+                                p1lastturn += 10;
+                                p1LastTurn.setText("(-" + displayTime(p1lastturn) + ")");
                             }
 
                             @Override
@@ -136,8 +175,11 @@ public class MainActivity extends AppCompatActivity {
                                 running = false;
                                 p1time = 0;
                                 p1Time.setText(displayTime(0));
+                                p1lastturn += 10;
+                                p1LastTurn.setText("(-" + displayTime(p1lastturn) + ")");
                             }
                         };
+                        p1.start();
                         return;
                     }
                     else
@@ -146,11 +188,16 @@ public class MainActivity extends AppCompatActivity {
                         p1.cancel();
                         p1moves ++;
                         p1Moves.setText(Long.toString(p1moves));
+                        p1time += currentTP.getIncrementation();
+                        p1Time.setText(displayTime(p1time));
+                        p2lastturn = 0;
                         p2 = new CountDownTimer(p2time, 10) {
                             @Override
                             public void onTick(long millisUntilFinished) {
                                 p2time = millisUntilFinished;
                                 p2Time.setText(displayTime(millisUntilFinished));
+                                p2lastturn += 10;
+                                p2LastTurn.setText("(-" + displayTime(p2lastturn) + ")");
                             }
 
                             @Override
@@ -158,8 +205,11 @@ public class MainActivity extends AppCompatActivity {
                                 running = false;
                                 p2time = 0;
                                 p2Time.setText(displayTime(0));
+                                p2lastturn += 10;
+                                p2LastTurn.setText("(-" + displayTime(p2lastturn) + ")");
                             }
                         };
+                        p2.start();
                         return;
                     }
                 }

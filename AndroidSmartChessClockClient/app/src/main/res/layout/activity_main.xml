@@ -72,31 +72,31 @@
         android:layout_height="wrap_content"
         android:layout_marginStart="54dp"
         android:layout_marginLeft="54dp"
-        android:layout_marginTop="48dp"
+        android:layout_marginTop="8dp"
         android:gravity="center"
         android:text="Moves:"
         android:textSize="24sp"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/Time_P1" />
+        app:layout_constraintTop_toBottomOf="@+id/p1LastTurn" />
 
     <TextView
         android:id="@+id/textView4"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="48dp"
+        android:layout_marginTop="8dp"
         android:layout_marginEnd="54dp"
         android:layout_marginRight="54dp"
         android:gravity="center"
         android:text="Moves:"
         android:textSize="24sp"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/Time_P2" />
+        app:layout_constraintTop_toBottomOf="@+id/p2LastTurn" />
 
     <TextView
         android:id="@+id/Moves_P2"
         android:layout_width="77dp"
         android:layout_height="55dp"
-        android:layout_marginTop="48dp"
+        android:layout_marginTop="8dp"
         android:layout_marginEnd="54dp"
         android:layout_marginRight="54dp"
         android:ems="10"
@@ -114,7 +114,7 @@
         android:layout_height="55dp"
         android:layout_marginStart="54dp"
         android:layout_marginLeft="54dp"
-        android:layout_marginTop="48dp"
+        android:layout_marginTop="8dp"
         android:autofillHints=""
         android:ems="10"
         android:gravity="center"
@@ -130,14 +130,14 @@
         android:layout_height="65dp"
         android:layout_marginStart="8dp"
         android:layout_marginLeft="8dp"
-        android:layout_marginTop="15dp"
+        android:layout_marginTop="20dp"
         android:layout_marginEnd="8dp"
         android:layout_marginRight="8dp"
         android:text="@string/start_stop"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="0.497"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/Moves_P2" />
+        app:layout_constraintTop_toBottomOf="@+id/PresetDisplay" />
 
     <Button
         android:id="@+id/Turn"
@@ -153,4 +153,57 @@
         app:layout_constraintHorizontal_bias="0.497"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/Start_Stop" />
+
+    <TextView
+        android:id="@+id/p1LastTurn"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="68dp"
+        android:layout_marginLeft="68dp"
+        android:text="(-10:10)"
+        android:textColor="@android:color/holo_red_dark"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/Time_P1" />
+
+    <TextView
+        android:id="@+id/p2LastTurn"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginEnd="68dp"
+        android:layout_marginRight="68dp"
+        android:text="(-10:10)"
+        android:textColor="@android:color/holo_red_dark"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/Time_P2" />
+
+    <TextView
+        android:id="@+id/textView7"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="8dp"
+        android:layout_marginLeft="8dp"
+        android:layout_marginTop="2dp"
+        android:layout_marginEnd="8dp"
+        android:layout_marginRight="8dp"
+        android:text="Time Preset:"
+        android:textColor="@color/colorPrimary"
+        android:textSize="20sp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/Moves_P2" />
+
+    <TextView
+        android:id="@+id/PresetDisplay"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="8dp"
+        android:layout_marginLeft="8dp"
+        android:layout_marginTop="6dp"
+        android:layout_marginEnd="8dp"
+        android:layout_marginRight="8dp"
+        android:text="5:00 + 3.00"
+        android:textSize="24sp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/textView7" />
 </android.support.constraint.ConstraintLayout>
