@@ -1,17 +1,20 @@
 package com.example.zegarszachowyklient;
 
+import android.content.Intent;
 import android.os.CountDownTimer;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.Button;
+import android.widget.EditText;
 import android.widget.TextView;
 
 import org.w3c.dom.Text;
 
 public class MainActivity extends AppCompatActivity {
 
-    private TimePreset currentTP = new TimePreset(300000, 3000);
+    public static final String EXTRA_MESSAGE = "com.example.zegarszachowyklient.MESSAGE";
+    public static TimePreset currentTP = new TimePreset(300000, 3000);
     private boolean running = false;
     private boolean turn = false;
     private int p1moves = 0;
@@ -119,7 +122,19 @@ public class MainActivity extends AppCompatActivity {
                                 p1lastturn += 10;
                                 p1LastTurn.setText("(-" + displayTime(p1lastturn) + ")");
                             }
+
                         };
+                        p2 = new CountDownTimer(10, 10) {
+                            @Override
+                            public void onTick(long millisUntilFinished) {
+                            }
+
+                            @Override
+                            public void onFinish() {
+                            }
+                        };
+                        p2.start();
+                        p2.cancel();
                         p1.start();
                     }
                     else
@@ -219,5 +234,23 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
         });
+    }
+    public void sendMessage(View view) {
+        Intent intent = new Intent(this, PresetCreatorActivity.class);
+        startActivity(intent);
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        TimePreset.setText(displayTime(currentTP.getOverallTime()) + " + " + displayTime(currentTP.getIncrementation()));
+        p1time = currentTP.getOverallTime();
+        p2time = currentTP.getOverallTime();
+        p1Time.setText(displayTime(p1time));
+        p2Time.setText(displayTime(p2time));
+        p1lastturn = 0;
+        p2lastturn = 0;
+        p1LastTurn.setText("(-" + displayTime(0) + ")");
+        p2LastTurn.setText("(-" + displayTime(0) + ")");
     }
 }
