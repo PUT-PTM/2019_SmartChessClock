@@ -49,12 +49,16 @@
 
 /* Private define ------------------------------------------------------------*/
 
-#define START_BUTTON_Pin GPIO_PIN_10
-#define START_BUTTON_GPIO_Port GPIOB
-#define START_BUTTON_EXTI_IRQn EXTI15_10_IRQn
-#define PLAYER1_BUTTON_Pin GPIO_PIN_11
+#define PAUSE_BUTTON_Pin GPIO_PIN_1
+#define PAUSE_BUTTON_GPIO_Port GPIOB
+#define PAUSE_BUTTON_EXTI_IRQn EXTI1_IRQn
+#define PLAYER1_BUTTON_Pin GPIO_PIN_2
 #define PLAYER1_BUTTON_GPIO_Port GPIOB
-#define PLAYER1_BUTTON_EXTI_IRQn EXTI15_10_IRQn
+#define PLAYER1_BUTTON_EXTI_IRQn EXTI2_IRQn
+#define SCL_DISP_PLAYER1_Pin GPIO_PIN_10
+#define SCL_DISP_PLAYER1_GPIO_Port GPIOB
+#define SDA_DISP_PLAYER1_Pin GPIO_PIN_11
+#define SDA_DISP_PLAYER1_GPIO_Port GPIOB
 #define PLAYER1_DIODE_Pin GPIO_PIN_12
 #define PLAYER1_DIODE_GPIO_Port GPIOB
 #define PLAYER2_BUTTON_Pin GPIO_PIN_13
@@ -64,6 +68,10 @@
 #define PLAYER2_DIODE_GPIO_Port GPIOB
 #define DEBUG_DIODE1_Pin GPIO_PIN_8
 #define DEBUG_DIODE1_GPIO_Port GPIOC
+#define SCL_DISP_PLAYER2_Pin GPIO_PIN_6
+#define SCL_DISP_PLAYER2_GPIO_Port GPIOB
+#define SDA_DISP_PLAYER2_Pin GPIO_PIN_7
+#define SDA_DISP_PLAYER2_GPIO_Port GPIOB
 
 /* ########################## Assert Selection ############################## */
 /**

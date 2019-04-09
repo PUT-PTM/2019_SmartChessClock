@@ -45,7 +45,11 @@
 /* USER CODE END Includes */
 
 /* Private variables ---------------------------------------------------------*/
+I2C_HandleTypeDef hi2c1;
+I2C_HandleTypeDef hi2c2;
+
 TIM_HandleTypeDef htim2;
+TIM_HandleTypeDef htim3;
 
 /* USER CODE BEGIN PV */
 /* Private variables ---------------------------------------------------------*/
@@ -53,7 +57,7 @@ TIM_HandleTypeDef htim2;
 //PREPROCESOR
 #define UI_PLAYER1_DIODE_ON		HAL_GPIO_WritePin(GPIOB, GPIO_PIN_12, GPIO_PIN_SET)		//Zapalenie diody przycisku 1
 #define UI_PLAYER1_DIODE_OFF	HAL_GPIO_WritePin(GPIOB, GPIO_PIN_12, GPIO_PIN_RESET)	//Zgaszenie diody przycisku 1
-#define UI_PLAYER1_BUTTON		GPIO_PIN_11												//Uchwyt przycisku gracza 1
+#define UI_PLAYER1_BUTTON		GPIO_PIN_2												//Uchwyt przycisku gracza 1
 
 #define UI_PLAYER2_DIODE_ON		HAL_GPIO_WritePin(GPIOB, GPIO_PIN_14, GPIO_PIN_SET)		//Zapalenie diody przycisku 2
 #define UI_PLAYER2_DIODE_OFF	HAL_GPIO_WritePin(GPIOB, GPIO_PIN_14, GPIO_PIN_RESET)	//Zgaszenie diody przycisku 2
@@ -61,7 +65,16 @@ TIM_HandleTypeDef htim2;
 
 #define DEBUG_DIODE1_ON			HAL_GPIO_WritePin(GPIOC, GPIO_PIN_8, GPIO_PIN_SET)		//Zapalenie niebieskiej diody na plytce
 #define DEBUG_DIODE1_OFF		HAL_GPIO_WritePin(GPIOC, GPIO_PIN_8, GPIO_PIN_RESET)	//Zapalenie niebieskiej diody na plytce
-#define UI_PAUSE_BUTTON			GPIO_PIN_10												//Uchwyt przycisku start/stop
+#define UI_PAUSE_BUTTON			GPIO_PIN_1												//Uchwyt przycisku start/stop
+
+#define BULLET_1_0				0
+#define BULLET_2_1				1
+#define BLITZ_3_0				2
+#define BLITZ_3_2				3
+#define BLITZ_5_0				4
+#define	BLITZ_5_3				5
+#define	RAPID_10_0				6
+#define	RAPID_15_15				6
 
 //STRUKTURA CZASU
 struct _time
@@ -78,16 +91,13 @@ struct _preset
 	uint8_t increment;
 };
 
-const struct _preset presets[] =	//{min, sec, ms, increment}
-{
-		{1, 0, 0, 0}, {2, 1, 0, 1}, {3, 0, 0, 0}, {3, 0, 0, 2}, {5, 0, 0, 0}, {5, 0, 0, 3}, {10, 0 ,0 ,0}, {15, 0, 0, 15}
-};
+struct _preset presets[8];	//Struktura zawierająca presety czasowe
 
 //ZMIENNE GLOBALNE
 uint8_t _currentPlayer;		//Zmienna oznaczajaca któremu z graczy uplywa czas
 uint8_t _increment;			//Zmienna oznaczajaca dodawany czas po wcisnieciu przycisku w sekundach
-_Bool _pause = 1;			//Zmienna wyznaczajaca pauze w pomiarze czasu
-_Bool _gameOver = 0;		//Zmienna wyznaczająca koniec gry w przypadku gdy jednemu z graczy upłynie czas
+uint8_t _pause = 1;			//Zmienna wyznaczajaca pauze w pomiarze czasu
+uint8_t _gameOver = 0;		//Zmienna wyznaczająca koniec gry w przypadku gdy jednemu z graczy upłynie czas
 
 struct _time PLAYER1_TIME;	//Struktura przechowująca informacje o czasie gracza nr 1
 struct _time PLAYER2_TIME;	//Struktura przechowująca informacje o czasie gracza nr 2
@@ -99,12 +109,66 @@ struct _time PLAYER2_TIME;	//Struktura przechowująca informacje o czasie gracza
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_TIM2_Init(void);
+static void MX_I2C2_Init(void);
+static void MX_I2C1_Init(void);
+static void MX_TIM3_Init(void);
 static void MX_NVIC_Init(void);
 
 /* USER CODE BEGIN PFP */
 /* Private function prototypes -----------------------------------------------*/
 
 /* FUNKCJE MIERZĄCE/OBS�?UGUJĄCE CZAS---------------------------------------------------------------*/
+void PresetInit()
+{
+	//BULLET 1+0
+	presets[0].time.miliseconds = 0;
+	presets[0].time.seconds = 0;
+	presets[0].time.minutes = 1;
+	presets[0].increment = 0;
+
+	//BULLET 2+1
+	presets[1].time.miliseconds = 0;
+	presets[1].time.seconds = 0;
+	presets[1].time.minutes = 2;
+	presets[1].increment = 1;
+
+	//BLITZ 3+0
+	presets[2].time.miliseconds = 0;
+	presets[2].time.seconds = 0;
+	presets[2].time.minutes = 3;
+	presets[2].increment = 0;
+
+	//BLITZ 3+2
+	presets[3].time.miliseconds = 0;
+	presets[3].time.seconds = 0;
+	presets[3].time.minutes = 3;
+	presets[3].increment = 2;
+
+	//BLITZ 5+0
+	presets[4].time.miliseconds = 0;
+	presets[4].time.seconds = 0;
+	presets[4].time.minutes = 5;
+	presets[4].increment = 0;
+
+	//BLITZ 5+3
+	presets[5].time.miliseconds = 0;
+	presets[5].time.seconds = 0;
+	presets[5].time.minutes = 5;
+	presets[5].increment = 3;
+
+	//RAPID 10+0
+	presets[6].time.miliseconds = 0;
+	presets[6].time.seconds = 0;
+	presets[6].time.minutes = 10;
+	presets[6].increment = 0;
+
+	//RAPID 15+15
+	presets[7].time.miliseconds = 0;
+	presets[7].time.seconds = 0;
+	presets[7].time.minutes = 15;
+	presets[7].increment = 15;
+}
+
 void setClocks(int presetIndex)						//Funkcja ustawia czas obu zegarów z numeru presetu
 {
 	presetIndex--;
@@ -214,9 +278,9 @@ void switchPlayers()				//Funkcja zmienajaca któremu graczowi ma uplywac czas
 	{
 		if(_currentPlayer == 1)
 		{
-			_currentPlayer = 2;
 			UI_PLAYER1_DIODE_OFF;
 			UI_PLAYER2_DIODE_ON;
+			_currentPlayer = 2;
 
 			clockIncrement();		//Inkrementacja czasu jest w osobnej funkcji żeby umożliwic zmianę graczy na pauzie bez dodawania czasu
 			return;
@@ -256,19 +320,17 @@ void switchTimer()				//Funkcja przełączająca timer podczas pauzowania/wznawi
 
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) 		//Przerwania GPIO
 {
-   	if(GPIO_Pin == UI_PAUSE_BUTTON)						//Wcisniecie przycisku START/STOP
+   	if(GPIO_Pin == UI_PAUSE_BUTTON)					//Wcisniecie przycisku START/STOP
    	{
-   		usleep(10000);	//Debouncing
-   		if(HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_10) == GPIO_PIN_SET)
+   		if(HAL_GPIO_ReadPin(GPIOB, UI_PAUSE_BUTTON) == GPIO_PIN_SET)
    			switchTimer();
    	}
 
    	else if(GPIO_Pin == UI_PLAYER1_BUTTON)			//Wcisniecie przycisku PLAYER1
    	{
-   		usleep(10000);	//Debouncing
+
    		if(HAL_GPIO_ReadPin(GPIOB, UI_PLAYER1_BUTTON) == GPIO_PIN_SET)
    		{
-
    			if(_currentPlayer == 1)
    				switchPlayers();
    		}
@@ -276,10 +338,9 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) 		//Przerwania GPIO
 
    	else if(GPIO_Pin == UI_PLAYER2_BUTTON)			//Wcisniecie przycisku PLAYER2
    	{
-   		usleep(10000);	//Debouncing
+
    		if(HAL_GPIO_ReadPin(GPIOB, UI_PLAYER2_BUTTON) == GPIO_PIN_SET)
    		{
-
    		   if(_currentPlayer == 2)
    			   switchPlayers();
    		}
@@ -292,12 +353,12 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)	//Przerwania Timeró
    	{
          clockTick();
     }
+
+   	if(htim->Instance == TIM3)	//Przepełnienie timera nr 3 -> odświeżenie wyświetlaczy
+   	{
+   		tm1637DisplayDecimal(PLAYER1_TIME.miliseconds, 0);
+   	}
 }
-/* USER CODE END PFP */
-
-
-//-------------------------------------------------------------------------------------------------
-
 /* USER CODE END PFP */
 
 /* USER CODE BEGIN 0 */
@@ -334,6 +395,9 @@ int main(void)
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
   MX_TIM2_Init();
+  MX_I2C2_Init();
+  MX_I2C1_Init();
+  MX_TIM3_Init();
 
   /* Initialize interrupts */
   MX_NVIC_Init();
@@ -341,9 +405,16 @@ int main(void)
 
 
   //INICJALIZACJA ZEGARA---------------------------------------------------------------------------
-  setClocks(5);
+  PresetInit();
+  HAL_TIM_Base_Start_IT(&htim3);	//Uruchomienie timera odświeżającego wyświetlacze
+  setClocks(BULLET_2_1);
   _currentPlayer = 1;
   UI_PLAYER1_DIODE_ON;
+
+  //debug
+  tm1637Init();
+  tm1637SetBrightness('B');
+
   //WYBÓR PRESETU POWINIEN NASTĄPIC PÓŹNIEJ, W CELACH TESTOWYCH IGNORUJEMY WYBÓR PRESETU
 
   /* USER CODE END 2 */
@@ -429,6 +500,46 @@ static void MX_NVIC_Init(void)
   HAL_NVIC_EnableIRQ(EXTI15_10_IRQn);
 }
 
+/* I2C1 init function */
+static void MX_I2C1_Init(void)
+{
+
+  hi2c1.Instance = I2C1;
+  hi2c1.Init.ClockSpeed = 100000;
+  hi2c1.Init.DutyCycle = I2C_DUTYCYCLE_2;
+  hi2c1.Init.OwnAddress1 = 0;
+  hi2c1.Init.AddressingMode = I2C_ADDRESSINGMODE_7BIT;
+  hi2c1.Init.DualAddressMode = I2C_DUALADDRESS_DISABLE;
+  hi2c1.Init.OwnAddress2 = 0;
+  hi2c1.Init.GeneralCallMode = I2C_GENERALCALL_DISABLE;
+  hi2c1.Init.NoStretchMode = I2C_NOSTRETCH_DISABLE;
+  if (HAL_I2C_Init(&hi2c1) != HAL_OK)
+  {
+    _Error_Handler(__FILE__, __LINE__);
+  }
+
+}
+
+/* I2C2 init function */
+static void MX_I2C2_Init(void)
+{
+
+  hi2c2.Instance = I2C2;
+  hi2c2.Init.ClockSpeed = 100000;
+  hi2c2.Init.DutyCycle = I2C_DUTYCYCLE_2;
+  hi2c2.Init.OwnAddress1 = 0;
+  hi2c2.Init.AddressingMode = I2C_ADDRESSINGMODE_7BIT;
+  hi2c2.Init.DualAddressMode = I2C_DUALADDRESS_DISABLE;
+  hi2c2.Init.OwnAddress2 = 0;
+  hi2c2.Init.GeneralCallMode = I2C_GENERALCALL_DISABLE;
+  hi2c2.Init.NoStretchMode = I2C_NOSTRETCH_DISABLE;
+  if (HAL_I2C_Init(&hi2c2) != HAL_OK)
+  {
+    _Error_Handler(__FILE__, __LINE__);
+  }
+
+}
+
 /* TIM2 init function */
 static void MX_TIM2_Init(void)
 {
@@ -461,6 +572,38 @@ static void MX_TIM2_Init(void)
 
 }
 
+/* TIM3 init function */
+static void MX_TIM3_Init(void)
+{
+
+  TIM_ClockConfigTypeDef sClockSourceConfig;
+  TIM_MasterConfigTypeDef sMasterConfig;
+
+  htim3.Instance = TIM3;
+  htim3.Init.Prescaler = 79;
+  htim3.Init.CounterMode = TIM_COUNTERMODE_UP;
+  htim3.Init.Period = 999;
+  htim3.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+  if (HAL_TIM_Base_Init(&htim3) != HAL_OK)
+  {
+    _Error_Handler(__FILE__, __LINE__);
+  }
+
+  sClockSourceConfig.ClockSource = TIM_CLOCKSOURCE_INTERNAL;
+  if (HAL_TIM_ConfigClockSource(&htim3, &sClockSourceConfig) != HAL_OK)
+  {
+    _Error_Handler(__FILE__, __LINE__);
+  }
+
+  sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
+  sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
+  if (HAL_TIMEx_MasterConfigSynchronization(&htim3, &sMasterConfig) != HAL_OK)
+  {
+    _Error_Handler(__FILE__, __LINE__);
+  }
+
+}
+
 /** Configure pins as 
         * Analog 
         * Input 
@@ -484,8 +627,8 @@ static void MX_GPIO_Init(void)
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(DEBUG_DIODE1_GPIO_Port, DEBUG_DIODE1_Pin, GPIO_PIN_RESET);
 
-  /*Configure GPIO pins : START_BUTTON_Pin PLAYER1_BUTTON_Pin PLAYER2_BUTTON_Pin */
-  GPIO_InitStruct.Pin = START_BUTTON_Pin|PLAYER1_BUTTON_Pin|PLAYER2_BUTTON_Pin;
+  /*Configure GPIO pins : PAUSE_BUTTON_Pin PLAYER1_BUTTON_Pin PLAYER2_BUTTON_Pin */
+  GPIO_InitStruct.Pin = PAUSE_BUTTON_Pin|PLAYER1_BUTTON_Pin|PLAYER2_BUTTON_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
   GPIO_InitStruct.Pull = GPIO_PULLUP;
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
@@ -503,6 +646,13 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(DEBUG_DIODE1_GPIO_Port, &GPIO_InitStruct);
+
+  /* EXTI interrupt init*/
+  HAL_NVIC_SetPriority(EXTI1_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(EXTI1_IRQn);
+
+  HAL_NVIC_SetPriority(EXTI2_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(EXTI2_IRQn);
 
 }
 
