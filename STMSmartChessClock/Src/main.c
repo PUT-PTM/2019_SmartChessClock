@@ -196,14 +196,14 @@ int decrement(struct _time* clock)					//Funkcja pomniejsza wartośc struktury c
 			{
 				return 1;		//Koniec czasu - zwracamy 1
 			}
-			else	{clock->minutes--; clock->seconds = 59; clock->miliseconds = 1000;}
+			else	{clock->minutes--; clock->seconds = 59; clock->miliseconds = 999;}
 					//Jeżeli liczba minut jest większa od zera odejmujemy jedną minutę z licznika i przestawiamy sekundy oraz milisekundy
 		}
-		else {clock->seconds--; clock->miliseconds = 1000;}
+		else {clock->seconds--; clock->miliseconds = 999;}
 			//Jeżeli liczba sekund jest większa od zera odejmujemy jedną sekundę z zegara i przestawiamy milisekundy
 	}
 	else
-		clock->miliseconds -= 10;
+		clock->miliseconds--;
 		//Jeżeli liczba milisekund jest większa od 0 odejmujemy jedną milisekundę z zegara
 
 	return 0;
