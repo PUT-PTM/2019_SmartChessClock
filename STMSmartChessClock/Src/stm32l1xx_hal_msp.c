@@ -92,7 +92,7 @@ void HAL_I2C_MspInit(I2C_HandleTypeDef* hi2c)
     PB6     ------> I2C1_SCL
     PB7     ------> I2C1_SDA 
     */
-    GPIO_InitStruct.Pin = SCL_DISP_PLAYER2_Pin|SDA_DISP_PLAYER2_Pin;
+    GPIO_InitStruct.Pin = SCL_DISP_PLAYER1_Pin|SDA_DISP_PLAYER1_Pin;
     GPIO_InitStruct.Mode = GPIO_MODE_AF_OD;
     GPIO_InitStruct.Pull = GPIO_PULLUP;
     GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
@@ -115,7 +115,7 @@ void HAL_I2C_MspInit(I2C_HandleTypeDef* hi2c)
     PB10     ------> I2C2_SCL
     PB11     ------> I2C2_SDA 
     */
-    GPIO_InitStruct.Pin = SCL_DISP_PLAYER1_Pin|SDA_DISP_PLAYER1_Pin;
+    GPIO_InitStruct.Pin = SCL_DISP_PLAYER2_Pin|SDA_DISP_PLAYER2_Pin;
     GPIO_InitStruct.Mode = GPIO_MODE_AF_OD;
     GPIO_InitStruct.Pull = GPIO_PULLUP;
     GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
@@ -146,7 +146,7 @@ void HAL_I2C_MspDeInit(I2C_HandleTypeDef* hi2c)
     PB6     ------> I2C1_SCL
     PB7     ------> I2C1_SDA 
     */
-    HAL_GPIO_DeInit(GPIOB, SCL_DISP_PLAYER2_Pin|SDA_DISP_PLAYER2_Pin);
+    HAL_GPIO_DeInit(GPIOB, SCL_DISP_PLAYER1_Pin|SDA_DISP_PLAYER1_Pin);
 
   /* USER CODE BEGIN I2C1_MspDeInit 1 */
 
@@ -164,7 +164,7 @@ void HAL_I2C_MspDeInit(I2C_HandleTypeDef* hi2c)
     PB10     ------> I2C2_SCL
     PB11     ------> I2C2_SDA 
     */
-    HAL_GPIO_DeInit(GPIOB, SCL_DISP_PLAYER1_Pin|SDA_DISP_PLAYER1_Pin);
+    HAL_GPIO_DeInit(GPIOB, SCL_DISP_PLAYER2_Pin|SDA_DISP_PLAYER2_Pin);
 
   /* USER CODE BEGIN I2C2_MspDeInit 1 */
 
@@ -201,6 +201,20 @@ void HAL_TIM_Base_MspInit(TIM_HandleTypeDef* htim_base)
 
   /* USER CODE END TIM3_MspInit 1 */
   }
+  else if(htim_base->Instance==TIM9)
+  {
+  /* USER CODE BEGIN TIM9_MspInit 0 */
+
+  /* USER CODE END TIM9_MspInit 0 */
+    /* Peripheral clock enable */
+    __HAL_RCC_TIM9_CLK_ENABLE();
+    /* TIM9 interrupt Init */
+    HAL_NVIC_SetPriority(TIM9_IRQn, 0, 0);
+    HAL_NVIC_EnableIRQ(TIM9_IRQn);
+  /* USER CODE BEGIN TIM9_MspInit 1 */
+
+  /* USER CODE END TIM9_MspInit 1 */
+  }
 
 }
 
@@ -234,6 +248,20 @@ void HAL_TIM_Base_MspDeInit(TIM_HandleTypeDef* htim_base)
   /* USER CODE BEGIN TIM3_MspDeInit 1 */
 
   /* USER CODE END TIM3_MspDeInit 1 */
+  }
+  else if(htim_base->Instance==TIM9)
+  {
+  /* USER CODE BEGIN TIM9_MspDeInit 0 */
+
+  /* USER CODE END TIM9_MspDeInit 0 */
+    /* Peripheral clock disable */
+    __HAL_RCC_TIM9_CLK_DISABLE();
+
+    /* TIM9 interrupt DeInit */
+    HAL_NVIC_DisableIRQ(TIM9_IRQn);
+  /* USER CODE BEGIN TIM9_MspDeInit 1 */
+
+  /* USER CODE END TIM9_MspDeInit 1 */
   }
 
 }
