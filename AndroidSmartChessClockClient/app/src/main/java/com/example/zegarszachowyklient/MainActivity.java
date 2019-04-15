@@ -1,15 +1,15 @@
 package com.example.zegarszachowyklient;
 
+import android.app.Activity;
+import android.bluetooth.BluetoothAdapter;
 import android.content.Intent;
 import android.os.CountDownTimer;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.Button;
-import android.widget.EditText;
+import android.widget.ImageView;
 import android.widget.TextView;
-
-import org.w3c.dom.Text;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -23,6 +23,9 @@ public class MainActivity extends AppCompatActivity {
     private long p2time = currentTP.getOverallTime();
     private long p1lastturn = 0;
     private long p2lastturn = 0;
+    public boolean bConnection = false;
+
+    public BluetoothAdapter bAdapter;
 
     private String displayTime(long time)
     {
@@ -70,6 +73,22 @@ public class MainActivity extends AppCompatActivity {
     Button Turn;
     CountDownTimer p1;
     CountDownTimer p2;
+    ImageView Bluetooth_button;
+
+    void updateBluetoothButton()
+    {
+        if(bAdapter == null)
+        {
+            Bluetooth_button.setImageDrawable(getResources().getDrawable(R.drawable.bluetooth_notavailable));
+        }
+        else if (bAdapter.isEnabled())
+        {
+            if(bConnection)
+                Bluetooth_button.setImageDrawable(getResources().getDrawable(R.drawable.bluetooth_connected));
+            else
+                Bluetooth_button.setImageDrawable(getResources().getDrawable(R.drawable.bluetooth_enabled));
+        }
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -84,12 +103,37 @@ public class MainActivity extends AppCompatActivity {
         TimePreset = (TextView) findViewById(R.id.PresetDisplay);
         startStop = (Button) findViewById(R.id.Start_Stop);
         Turn = (Button) findViewById(R.id.Turn);
+        Bluetooth_button = findViewById(R.id.Bluetooth_button);
         //Reset = (Button) findViewById(R.id.Reset);
         p1Time.setText(displayTime(p1time));
         p2Time.setText(displayTime(p2time));
         p1LastTurn.setText("(-" + displayTime(0) + ")");
         p2LastTurn.setText("(-" + displayTime(0) + ")");
         TimePreset.setText(displayTime(currentTP.getOverallTime()) + " + " + displayTime(currentTP.getIncrementation()));
+
+        bAdapter = BluetoothAdapter.getDefaultAdapter();
+        Thread btUpdater = new Thread(){
+            public void run()
+            {
+                while(true)
+                {
+                    try {
+                        runOnUiThread(new Runnable() {
+                            @Override
+                            public void run() {
+                                updateBluetoothButton();
+                            }
+                        });
+                        Thread.sleep(100);
+                    }
+                    catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                }
+            }
+        };
+        btUpdater.start();
+
         startStop.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -236,14 +280,21 @@ public class MainActivity extends AppCompatActivity {
         });
     }
     public void sendMessage(View view) {
-        Intent intent = new Intent(this, PresetCreatorActivity.class);
-        startActivity(intent);
+        if(!running)
+        {
+            Intent intent = new Intent(this, PresetCreatorActivity.class);
+            startActivity(intent);
+        }
     }
 
     @Override
     protected void onResume() {
         super.onResume();
         TimePreset.setText(displayTime(currentTP.getOverallTime()) + " + " + displayTime(currentTP.getIncrementation()));
+        p1moves = 0;
+        p1Moves.setText(Long.toString(p1moves));
+        p2moves = 0;
+        p2Moves.setText(Long.toString(p2moves));
         p1time = currentTP.getOverallTime();
         p2time = currentTP.getOverallTime();
         p1Time.setText(displayTime(p1time));
@@ -252,5 +303,6 @@ public class MainActivity extends AppCompatActivity {
         p2lastturn = 0;
         p1LastTurn.setText("(-" + displayTime(0) + ")");
         p2LastTurn.setText("(-" + displayTime(0) + ")");
+        turn = false;
     }
 }
