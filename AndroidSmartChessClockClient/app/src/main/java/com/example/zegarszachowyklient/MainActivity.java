@@ -88,6 +88,10 @@ public class MainActivity extends AppCompatActivity {
             else
                 Bluetooth_button.setImageDrawable(getResources().getDrawable(R.drawable.bluetooth_enabled));
         }
+        else
+        {
+            Bluetooth_button.setImageDrawable(getResources().getDrawable(R.drawable.bluetooth_disabled));
+        }
     }
 
     @Override
