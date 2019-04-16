@@ -104,7 +104,6 @@ volatile uint8_t _increment;			//Zmienna oznaczajaca dodawany czas po wcisnieciu
 volatile uint8_t _pause = 1;			//Zmienna wyznaczajaca pauze w pomiarze czasu
 volatile uint8_t _gameOver = 0;			//Zmienna wyznaczająca koniec gry w przypadku gdy jednemu z graczy upłynie czas
 volatile uint8_t _refresh = 0;			//Zmienna wykorzystywana do odświeżania wyświetlaczy zegara
-volatile uint8_t _debounce = 0;			//Zmienna wykorzystywana do debouncingu przycisków
 
 struct _time PLAYER1_TIME;	//Struktura przechowująca informacje o czasie gracza nr 1
 struct _time PLAYER2_TIME;	//Struktura przechowująca informacje o czasie gracza nr 2
@@ -343,42 +342,20 @@ void switchTimer()				//Funkcja przełączająca timer podczas pauzowania/wznawi
 
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) 		//Przerwania GPIO
 {
-	_debounce = 1;
-	HAL_TIM_Base_Start_IT(&htim10);					//Uruchomienie timera do debouncingu
-
    	if(GPIO_Pin == UI_PAUSE_BUTTON)					//Wcisniecie przycisku START/STOP
    	{
-   		while(_debounce);
-
-   		if(HAL_GPIO_ReadPin(GPIOB, UI_PAUSE_BUTTON) == GPIO_PIN_SET)
-   			switchTimer();
+   			HAL_TIM_Base_Start_IT(&htim10);
    	}
 
-   	else if(GPIO_Pin == UI_PLAYER1_BUTTON)			//Wcisniecie przycisku PLAYER1
+   	if(GPIO_Pin == UI_PLAYER1_BUTTON)			//Wcisniecie przycisku PLAYER1
    	{
-
-   		while(_debounce);
-
-   		if(HAL_GPIO_ReadPin(GPIOB, UI_PLAYER1_BUTTON) == GPIO_PIN_SET)
-   		{
-   			if(_currentPlayer == 1)
-   				switchPlayers();
-   		}
+   			HAL_TIM_Base_Start_IT(&htim10);
    	}
 
-   	else if(GPIO_Pin == UI_PLAYER2_BUTTON)			//Wcisniecie przycisku PLAYER2
+   	if(GPIO_Pin == UI_PLAYER2_BUTTON)			//Wcisniecie przycisku PLAYER2
    	{
-   		while(_debounce);
-
-   		if(HAL_GPIO_ReadPin(GPIOB, UI_PLAYER2_BUTTON) == GPIO_PIN_SET)
-   		{
-   		   if(_currentPlayer == 2)
-   			   switchPlayers();
-   		}
+   			HAL_TIM_Base_Start_IT(&htim10);
    	}
-
-   	HAL_TIM_Base_Stop_IT(&htim10);
-   	TIM10->CNT = 0;
 }
 
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)	//Przerwania Timerów
@@ -402,7 +379,29 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)	//Przerwania Timeró
 
    	if(htim->Instance == TIM10)	//Przepełnienie timera nr 10 -> debouncing przycisków
    	{
+   		if(HAL_GPIO_ReadPin(GPIOB, UI_PAUSE_BUTTON) == GPIO_PIN_RESET)			//Przycisk pauzy
+   		{
+   			switchTimer();
+   		}
 
+   		if(HAL_GPIO_ReadPin(GPIOB, UI_PLAYER1_BUTTON) == GPIO_PIN_RESET)		//Gracz 1
+   		{
+   			if(_currentPlayer == 1)
+   			{
+   			   	switchPlayers();
+   			}
+   		}
+
+   		if(HAL_GPIO_ReadPin(GPIOB, UI_PLAYER2_BUTTON) == GPIO_PIN_RESET)		//Gracz 2
+   		{
+   			if(_currentPlayer == 2)
+   			{
+   				switchPlayers();
+   			}
+   		}
+
+   	   	HAL_TIM_Base_Stop_IT(&htim10);
+   	   	TIM10->CNT = 0;
    	}
 }
 /* USER CODE END PFP */
@@ -551,9 +550,6 @@ static void MX_NVIC_Init(void)
   /* TIM2_IRQn interrupt configuration */
   HAL_NVIC_SetPriority(TIM2_IRQn, 1, 0);
   HAL_NVIC_EnableIRQ(TIM2_IRQn);
-  /* EXTI15_10_IRQn interrupt configuration */
-  HAL_NVIC_SetPriority(EXTI15_10_IRQn, 1, 0);
-  HAL_NVIC_EnableIRQ(EXTI15_10_IRQn);
 }
 
 /* I2C1 init function */
@@ -699,7 +695,7 @@ static void MX_TIM10_Init(void)
   TIM_ClockConfigTypeDef sClockSourceConfig;
 
   htim10.Instance = TIM10;
-  htim10.Init.Prescaler = 15;
+  htim10.Init.Prescaler = 31;
   htim10.Init.CounterMode = TIM_COUNTERMODE_UP;
   htim10.Init.Period = 999;
   htim10.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
@@ -764,7 +760,7 @@ static void MX_GPIO_Init(void)
 
   /*Configure GPIO pins : PAUSE_BUTTON_Pin PLAYER1_BUTTON_Pin PLAYER2_BUTTON_Pin */
   GPIO_InitStruct.Pin = PAUSE_BUTTON_Pin|PLAYER1_BUTTON_Pin|PLAYER2_BUTTON_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
+  GPIO_InitStruct.Mode = GPIO_MODE_IT_FALLING;
   GPIO_InitStruct.Pull = GPIO_PULLUP;
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
@@ -795,6 +791,9 @@ static void MX_GPIO_Init(void)
 
   HAL_NVIC_SetPriority(EXTI2_IRQn, 1, 0);
   HAL_NVIC_EnableIRQ(EXTI2_IRQn);
+
+  HAL_NVIC_SetPriority(EXTI15_10_IRQn, 1, 0);
+  HAL_NVIC_EnableIRQ(EXTI15_10_IRQn);
 
 }
 
