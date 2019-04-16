@@ -90,7 +90,7 @@ void HAL_I2C_MspInit(I2C_HandleTypeDef* hi2c)
   
     /**I2C1 GPIO Configuration    
     PB6     ------> I2C1_SCL
-    PB7     ------> I2C1_SDA 
+    PB9     ------> I2C1_SDA 
     */
     GPIO_InitStruct.Pin = SCL_DISP_PLAYER1_Pin|SDA_DISP_PLAYER1_Pin;
     GPIO_InitStruct.Mode = GPIO_MODE_AF_OD;
@@ -144,7 +144,7 @@ void HAL_I2C_MspDeInit(I2C_HandleTypeDef* hi2c)
   
     /**I2C1 GPIO Configuration    
     PB6     ------> I2C1_SCL
-    PB7     ------> I2C1_SDA 
+    PB9     ------> I2C1_SDA 
     */
     HAL_GPIO_DeInit(GPIOB, SCL_DISP_PLAYER1_Pin|SDA_DISP_PLAYER1_Pin);
 
@@ -195,7 +195,7 @@ void HAL_TIM_Base_MspInit(TIM_HandleTypeDef* htim_base)
     /* Peripheral clock enable */
     __HAL_RCC_TIM3_CLK_ENABLE();
     /* TIM3 interrupt Init */
-    HAL_NVIC_SetPriority(TIM3_IRQn, 0, 0);
+    HAL_NVIC_SetPriority(TIM3_IRQn, 1, 0);
     HAL_NVIC_EnableIRQ(TIM3_IRQn);
   /* USER CODE BEGIN TIM3_MspInit 1 */
 
@@ -209,11 +209,25 @@ void HAL_TIM_Base_MspInit(TIM_HandleTypeDef* htim_base)
     /* Peripheral clock enable */
     __HAL_RCC_TIM9_CLK_ENABLE();
     /* TIM9 interrupt Init */
-    HAL_NVIC_SetPriority(TIM9_IRQn, 0, 0);
+    HAL_NVIC_SetPriority(TIM9_IRQn, 1, 0);
     HAL_NVIC_EnableIRQ(TIM9_IRQn);
   /* USER CODE BEGIN TIM9_MspInit 1 */
 
   /* USER CODE END TIM9_MspInit 1 */
+  }
+  else if(htim_base->Instance==TIM10)
+  {
+  /* USER CODE BEGIN TIM10_MspInit 0 */
+
+  /* USER CODE END TIM10_MspInit 0 */
+    /* Peripheral clock enable */
+    __HAL_RCC_TIM10_CLK_ENABLE();
+    /* TIM10 interrupt Init */
+    HAL_NVIC_SetPriority(TIM10_IRQn, 0, 0);
+    HAL_NVIC_EnableIRQ(TIM10_IRQn);
+  /* USER CODE BEGIN TIM10_MspInit 1 */
+
+  /* USER CODE END TIM10_MspInit 1 */
   }
 
 }
@@ -262,6 +276,74 @@ void HAL_TIM_Base_MspDeInit(TIM_HandleTypeDef* htim_base)
   /* USER CODE BEGIN TIM9_MspDeInit 1 */
 
   /* USER CODE END TIM9_MspDeInit 1 */
+  }
+  else if(htim_base->Instance==TIM10)
+  {
+  /* USER CODE BEGIN TIM10_MspDeInit 0 */
+
+  /* USER CODE END TIM10_MspDeInit 0 */
+    /* Peripheral clock disable */
+    __HAL_RCC_TIM10_CLK_DISABLE();
+
+    /* TIM10 interrupt DeInit */
+    HAL_NVIC_DisableIRQ(TIM10_IRQn);
+  /* USER CODE BEGIN TIM10_MspDeInit 1 */
+
+  /* USER CODE END TIM10_MspDeInit 1 */
+  }
+
+}
+
+void HAL_UART_MspInit(UART_HandleTypeDef* huart)
+{
+
+  GPIO_InitTypeDef GPIO_InitStruct;
+  if(huart->Instance==USART3)
+  {
+  /* USER CODE BEGIN USART3_MspInit 0 */
+
+  /* USER CODE END USART3_MspInit 0 */
+    /* Peripheral clock enable */
+    __HAL_RCC_USART3_CLK_ENABLE();
+  
+    /**USART3 GPIO Configuration    
+    PC10     ------> USART3_TX
+    PC11     ------> USART3_RX 
+    */
+    GPIO_InitStruct.Pin = BLUETOOTH_TX_Pin|BLUETOOTH_RX_Pin;
+    GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
+    GPIO_InitStruct.Pull = GPIO_PULLUP;
+    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
+    GPIO_InitStruct.Alternate = GPIO_AF7_USART3;
+    HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
+
+  /* USER CODE BEGIN USART3_MspInit 1 */
+
+  /* USER CODE END USART3_MspInit 1 */
+  }
+
+}
+
+void HAL_UART_MspDeInit(UART_HandleTypeDef* huart)
+{
+
+  if(huart->Instance==USART3)
+  {
+  /* USER CODE BEGIN USART3_MspDeInit 0 */
+
+  /* USER CODE END USART3_MspDeInit 0 */
+    /* Peripheral clock disable */
+    __HAL_RCC_USART3_CLK_DISABLE();
+  
+    /**USART3 GPIO Configuration    
+    PC10     ------> USART3_TX
+    PC11     ------> USART3_RX 
+    */
+    HAL_GPIO_DeInit(GPIOC, BLUETOOTH_TX_Pin|BLUETOOTH_RX_Pin);
+
+  /* USER CODE BEGIN USART3_MspDeInit 1 */
+
+  /* USER CODE END USART3_MspDeInit 1 */
   }
 
 }

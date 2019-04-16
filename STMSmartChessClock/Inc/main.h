@@ -66,13 +66,15 @@
 #define PLAYER2_BUTTON_EXTI_IRQn EXTI15_10_IRQn
 #define PLAYER2_DIODE_Pin GPIO_PIN_14
 #define PLAYER2_DIODE_GPIO_Port GPIOB
-#define DEBUG_DIODE1_Pin GPIO_PIN_8
-#define DEBUG_DIODE1_GPIO_Port GPIOC
 #define DEBUG_TIMER_Pin GPIO_PIN_10
 #define DEBUG_TIMER_GPIO_Port GPIOA
+#define BLUETOOTH_TX_Pin GPIO_PIN_10
+#define BLUETOOTH_TX_GPIO_Port GPIOC
+#define BLUETOOTH_RX_Pin GPIO_PIN_11
+#define BLUETOOTH_RX_GPIO_Port GPIOC
 #define SCL_DISP_PLAYER1_Pin GPIO_PIN_6
 #define SCL_DISP_PLAYER1_GPIO_Port GPIOB
-#define SDA_DISP_PLAYER1_Pin GPIO_PIN_7
+#define SDA_DISP_PLAYER1_Pin GPIO_PIN_9
 #define SDA_DISP_PLAYER1_GPIO_Port GPIOB
 
 /* ########################## Assert Selection ############################## */

@@ -52,6 +52,9 @@ I2C_HandleTypeDef hi2c2;
 TIM_HandleTypeDef htim2;
 TIM_HandleTypeDef htim3;
 TIM_HandleTypeDef htim9;
+TIM_HandleTypeDef htim10;
+
+UART_HandleTypeDef huart3;
 
 /* USER CODE BEGIN PV */
 /* Private variables ---------------------------------------------------------*/
@@ -99,8 +102,9 @@ struct _preset presets[8];	//Struktura zawierająca presety czasowe
 volatile uint8_t _currentPlayer;		//Zmienna oznaczajaca któremu z graczy uplywa czas
 volatile uint8_t _increment;			//Zmienna oznaczajaca dodawany czas po wcisnieciu przycisku w sekundach
 volatile uint8_t _pause = 1;			//Zmienna wyznaczajaca pauze w pomiarze czasu
-volatile uint8_t _gameOver = 0;		//Zmienna wyznaczająca koniec gry w przypadku gdy jednemu z graczy upłynie czas
-volatile uint8_t _refresh = 0;
+volatile uint8_t _gameOver = 0;			//Zmienna wyznaczająca koniec gry w przypadku gdy jednemu z graczy upłynie czas
+volatile uint8_t _refresh = 0;			//Zmienna wykorzystywana do odświeżania wyświetlaczy zegara
+volatile uint8_t _debounce = 0;			//Zmienna wykorzystywana do debouncingu przycisków
 
 struct _time PLAYER1_TIME;	//Struktura przechowująca informacje o czasie gracza nr 1
 struct _time PLAYER2_TIME;	//Struktura przechowująca informacje o czasie gracza nr 2
@@ -116,6 +120,8 @@ static void MX_I2C2_Init(void);
 static void MX_I2C1_Init(void);
 static void MX_TIM3_Init(void);
 static void MX_TIM9_Init(void);
+static void MX_TIM10_Init(void);
+static void MX_USART3_UART_Init(void);
 static void MX_NVIC_Init(void);
 
 /* USER CODE BEGIN PFP */
@@ -337,14 +343,21 @@ void switchTimer()				//Funkcja przełączająca timer podczas pauzowania/wznawi
 
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) 		//Przerwania GPIO
 {
+	_debounce = 1;
+	HAL_TIM_Base_Start_IT(&htim10);					//Uruchomienie timera do debouncingu
+
    	if(GPIO_Pin == UI_PAUSE_BUTTON)					//Wcisniecie przycisku START/STOP
    	{
+   		while(_debounce);
+
    		if(HAL_GPIO_ReadPin(GPIOB, UI_PAUSE_BUTTON) == GPIO_PIN_SET)
    			switchTimer();
    	}
 
    	else if(GPIO_Pin == UI_PLAYER1_BUTTON)			//Wcisniecie przycisku PLAYER1
    	{
+
+   		while(_debounce);
 
    		if(HAL_GPIO_ReadPin(GPIOB, UI_PLAYER1_BUTTON) == GPIO_PIN_SET)
    		{
@@ -355,6 +368,7 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) 		//Przerwania GPIO
 
    	else if(GPIO_Pin == UI_PLAYER2_BUTTON)			//Wcisniecie przycisku PLAYER2
    	{
+   		while(_debounce);
 
    		if(HAL_GPIO_ReadPin(GPIOB, UI_PLAYER2_BUTTON) == GPIO_PIN_SET)
    		{
@@ -362,6 +376,9 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) 		//Przerwania GPIO
    			   switchPlayers();
    		}
    	}
+
+   	HAL_TIM_Base_Stop_IT(&htim10);
+   	TIM10->CNT = 0;
 }
 
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)	//Przerwania Timerów
@@ -372,7 +389,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)	//Przerwania Timeró
          HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_10);
     }
 
-   	if(htim->Instance == TIM9)	//Przepełnienie timera nr 2 -> upłynięcie milisekundy gracza 2
+   	if(htim->Instance == TIM9)	//Przepełnienie timera nr 9 -> upłynięcie milisekundy gracza 2
    	{
    	     clockTick();
    	}
@@ -381,6 +398,11 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)	//Przerwania Timeró
    	if(htim->Instance == TIM3)	//Przepełnienie timera nr 3 -> odświeżenie wyświetlaczy
    	{
    		_refresh = 1;
+   	}
+
+   	if(htim->Instance == TIM10)	//Przepełnienie timera nr 10 -> debouncing przycisków
+   	{
+
    	}
 }
 /* USER CODE END PFP */
@@ -423,6 +445,8 @@ int main(void)
   MX_I2C1_Init();
   MX_TIM3_Init();
   MX_TIM9_Init();
+  MX_TIM10_Init();
+  MX_USART3_UART_Init();
 
   /* Initialize interrupts */
   MX_NVIC_Init();
@@ -432,7 +456,7 @@ int main(void)
   //INICJALIZACJA ZEGARA---------------------------------------------------------------------------
   PresetInit();
   HAL_TIM_Base_Start_IT(&htim3);	//Uruchomienie timera odświeżającego wyświetlacze
-  setClocks(BULLET_2_1);
+  setClocks(BLITZ_3_2);
   _currentPlayer = 1;
   UI_PLAYER1_DIODE_ON;
 
@@ -456,8 +480,8 @@ int main(void)
   /* USER CODE BEGIN 3 */
 	  if(_refresh == 1)
 	  {
-		  tm1637DisplayDecimal(timeToDisplay(&PLAYER1_TIME), 0);
-		  tm1637DisplayDecimal2(timeToDisplay(&PLAYER2_TIME), 0);
+		  tm1637DisplayDecimal(timeToDisplay(&PLAYER1_TIME), !((PLAYER1_TIME.miliseconds / 500) && (_currentPlayer == 1)));
+		  tm1637DisplayDecimal2(timeToDisplay(&PLAYER2_TIME), !((PLAYER2_TIME.miliseconds / 500) && (_currentPlayer == 2)));
 		  _refresh = 0;
 	  }
   }
@@ -525,10 +549,10 @@ void SystemClock_Config(void)
 static void MX_NVIC_Init(void)
 {
   /* TIM2_IRQn interrupt configuration */
-  HAL_NVIC_SetPriority(TIM2_IRQn, 0, 0);
+  HAL_NVIC_SetPriority(TIM2_IRQn, 1, 0);
   HAL_NVIC_EnableIRQ(TIM2_IRQn);
   /* EXTI15_10_IRQn interrupt configuration */
-  HAL_NVIC_SetPriority(EXTI15_10_IRQn, 0, 0);
+  HAL_NVIC_SetPriority(EXTI15_10_IRQn, 1, 0);
   HAL_NVIC_EnableIRQ(EXTI15_10_IRQn);
 }
 
@@ -612,7 +636,7 @@ static void MX_TIM3_Init(void)
   TIM_MasterConfigTypeDef sMasterConfig;
 
   htim3.Instance = TIM3;
-  htim3.Init.Prescaler = 79;
+  htim3.Init.Prescaler = 159;
   htim3.Init.CounterMode = TIM_COUNTERMODE_UP;
   htim3.Init.Period = 999;
   htim3.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
@@ -668,6 +692,49 @@ static void MX_TIM9_Init(void)
 
 }
 
+/* TIM10 init function */
+static void MX_TIM10_Init(void)
+{
+
+  TIM_ClockConfigTypeDef sClockSourceConfig;
+
+  htim10.Instance = TIM10;
+  htim10.Init.Prescaler = 15;
+  htim10.Init.CounterMode = TIM_COUNTERMODE_UP;
+  htim10.Init.Period = 999;
+  htim10.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+  if (HAL_TIM_Base_Init(&htim10) != HAL_OK)
+  {
+    _Error_Handler(__FILE__, __LINE__);
+  }
+
+  sClockSourceConfig.ClockSource = TIM_CLOCKSOURCE_INTERNAL;
+  if (HAL_TIM_ConfigClockSource(&htim10, &sClockSourceConfig) != HAL_OK)
+  {
+    _Error_Handler(__FILE__, __LINE__);
+  }
+
+}
+
+/* USART3 init function */
+static void MX_USART3_UART_Init(void)
+{
+
+  huart3.Instance = USART3;
+  huart3.Init.BaudRate = 115200;
+  huart3.Init.WordLength = UART_WORDLENGTH_8B;
+  huart3.Init.StopBits = UART_STOPBITS_1;
+  huart3.Init.Parity = UART_PARITY_NONE;
+  huart3.Init.Mode = UART_MODE_TX_RX;
+  huart3.Init.HwFlowCtl = UART_HWCONTROL_NONE;
+  huart3.Init.OverSampling = UART_OVERSAMPLING_16;
+  if (HAL_UART_Init(&huart3) != HAL_OK)
+  {
+    _Error_Handler(__FILE__, __LINE__);
+  }
+
+}
+
 /** Configure pins as 
         * Analog 
         * Input 
@@ -690,7 +757,7 @@ static void MX_GPIO_Init(void)
   HAL_GPIO_WritePin(GPIOB, PLAYER1_DIODE_Pin|PLAYER2_DIODE_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(DEBUG_DIODE1_GPIO_Port, DEBUG_DIODE1_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOC, GPIO_PIN_8, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(DEBUG_TIMER_GPIO_Port, DEBUG_TIMER_Pin, GPIO_PIN_RESET);
@@ -708,12 +775,12 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
-  /*Configure GPIO pin : DEBUG_DIODE1_Pin */
-  GPIO_InitStruct.Pin = DEBUG_DIODE1_Pin;
+  /*Configure GPIO pin : PC8 */
+  GPIO_InitStruct.Pin = GPIO_PIN_8;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  HAL_GPIO_Init(DEBUG_DIODE1_GPIO_Port, &GPIO_InitStruct);
+  HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
 
   /*Configure GPIO pin : DEBUG_TIMER_Pin */
   GPIO_InitStruct.Pin = DEBUG_TIMER_Pin;
@@ -723,10 +790,10 @@ static void MX_GPIO_Init(void)
   HAL_GPIO_Init(DEBUG_TIMER_GPIO_Port, &GPIO_InitStruct);
 
   /* EXTI interrupt init*/
-  HAL_NVIC_SetPriority(EXTI1_IRQn, 0, 0);
+  HAL_NVIC_SetPriority(EXTI1_IRQn, 1, 0);
   HAL_NVIC_EnableIRQ(EXTI1_IRQn);
 
-  HAL_NVIC_SetPriority(EXTI2_IRQn, 0, 0);
+  HAL_NVIC_SetPriority(EXTI2_IRQn, 1, 0);
   HAL_NVIC_EnableIRQ(EXTI2_IRQn);
 
 }
