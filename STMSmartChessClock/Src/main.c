@@ -104,6 +104,7 @@ volatile uint8_t _increment;			//Zmienna oznaczajaca dodawany czas po wcisnieciu
 volatile uint8_t _pause = 1;			//Zmienna wyznaczajaca pauze w pomiarze czasu
 volatile uint8_t _gameOver = 0;			//Zmienna wyznaczająca koniec gry w przypadku gdy jednemu z graczy upłynie czas
 volatile uint8_t _refresh = 0;			//Zmienna wykorzystywana do odświeżania wyświetlaczy zegara
+volatile int8_t _presetSelect = 0;		//Zmienna wykorzystywana przy wyborze presetu zegara
 
 struct _time PLAYER1_TIME;	//Struktura przechowująca informacje o czasie gracza nr 1
 struct _time PLAYER2_TIME;	//Struktura przechowująca informacje o czasie gracza nr 2
@@ -279,6 +280,18 @@ void clockIncrement()								//FUNCKJA INKREMENTUJĄCA CZAS ZEGARA WYWO�?YWANA
 	}
 }
 
+void incrementPreset()		//Funkcja inkrementująca kursor presetu
+{
+	if(_presetSelect < 7)
+		_presetSelect++;
+}
+
+void decrementPreset()		//Funkcja dekrementująca kursor presetu
+{
+	if(_presetSelect > 0)
+		_presetSelect--;
+}
+
 /*-------------------------------------------------------------------------------------------------
 FUNKCJE UI I PRZERWANIA--------------------------------------------------------------------------*/
 int timeToDisplay(struct _time* clock)	//Fukcja zwraca integera do wyświetlenia na ekranie
@@ -363,7 +376,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)	//Przerwania Timeró
    	if(htim->Instance == TIM2)	//Przepełnienie timera nr 2 -> upłynięcie milisekundy gracza 1
    	{
          clockTick();
-         HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_10);
+         //HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_10);	Można na oscyloskopie sprawdzic, czy timer odmierza dokładnie 1 ms
     }
 
    	if(htim->Instance == TIM9)	//Przepełnienie timera nr 9 -> upłynięcie milisekundy gracza 2
@@ -381,23 +394,32 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)	//Przerwania Timeró
    	{
    		if(HAL_GPIO_ReadPin(GPIOB, UI_PAUSE_BUTTON) == GPIO_PIN_RESET)			//Przycisk pauzy
    		{
-   			switchTimer();
+   			if(_presetSelect != -1)
+   			{
+   				setClocks(_presetSelect);
+   				_presetSelect = -1;
+   			}
+
+   			else
+   				switchTimer();
    		}
 
    		if(HAL_GPIO_ReadPin(GPIOB, UI_PLAYER1_BUTTON) == GPIO_PIN_RESET)		//Gracz 1
    		{
-   			if(_currentPlayer == 1)
-   			{
+   			if(_presetSelect != -1)
+   				incrementPreset();
+
+   			else if(_currentPlayer == 1)
    			   	switchPlayers();
-   			}
    		}
 
    		if(HAL_GPIO_ReadPin(GPIOB, UI_PLAYER2_BUTTON) == GPIO_PIN_RESET)		//Gracz 2
    		{
-   			if(_currentPlayer == 2)
-   			{
+   			if(_presetSelect != -1)
+   			   	decrementPreset();
+
+   			else if(_currentPlayer == 2)
    				switchPlayers();
-   			}
    		}
 
    	   	HAL_TIM_Base_Stop_IT(&htim10);
@@ -453,24 +475,38 @@ int main(void)
 
 
   //INICJALIZACJA ZEGARA---------------------------------------------------------------------------
-  PresetInit();
+  PresetInit();						//Wypełnienie pamięci presetami
   HAL_TIM_Base_Start_IT(&htim3);	//Uruchomienie timera odświeżającego wyświetlacze
-  setClocks(BLITZ_3_2);
-  _currentPlayer = 1;
-  UI_PLAYER1_DIODE_ON;
 
-  //debug
+  //Wyświetlacze
   tm1637Init();
   tm1637Init2();
-  tm1637SetBrightness('7');
-  tm1637SetBrightness2('7');
+  tm1637SetBrightness('8');		//Włączenie wyświetlacza nr 1
+  tm1637SetBrightness2('0');	//Wyłączenie wyświetlacza nr 2
 
-  //WYBÓR PRESETU POWINIEN NASTĄPIC PÓŹNIEJ, W CELACH TESTOWYCH IGNORUJEMY WYBÓR PRESETU
+  //WYBÓR PRESETU CZASOWEGO------------------------------------------------------------------------
+  while(1)		//Wciśnięcie przycisku pauzy rozpocznie rozgrywkę z wybranym presetem
+  {
+	  if(_refresh == 1)
+	  {
+		  tm1637DisplayDecimal(_presetSelect + 1, 0);
+	  	  _refresh = 0;
+	  }
+
+	  if(_presetSelect == -1)
+		  break;
+  }
+
+  tm1637SetBrightness2('8');		//Włączenie wyświetlacza nr 2
+  _currentPlayer = 1;				//Domyślnie gracz 1 "ma ruch"
+  UI_PLAYER1_DIODE_ON;				//Włączenie diody gracza 1
 
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
+
+  //ROZGRYWKA--------------------------------------------------------------------------------------
   while (1)
   {
 
