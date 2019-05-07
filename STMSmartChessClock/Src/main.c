@@ -51,6 +51,7 @@ I2C_HandleTypeDef hi2c2;
 
 TIM_HandleTypeDef htim2;
 TIM_HandleTypeDef htim3;
+TIM_HandleTypeDef htim6;
 TIM_HandleTypeDef htim9;
 TIM_HandleTypeDef htim10;
 
@@ -105,6 +106,7 @@ volatile uint8_t _pause = 1;			//Zmienna wyznaczajaca pauze w pomiarze czasu
 volatile uint8_t _gameOver = 0;			//Zmienna wyznaczająca koniec gry w przypadku gdy jednemu z graczy upłynie czas
 volatile uint8_t _refresh = 0;			//Zmienna wykorzystywana do odświeżania wyświetlaczy zegara
 volatile int8_t _presetSelect = 0;		//Zmienna wykorzystywana przy wyborze presetu zegara
+volatile uint8_t _display;				//Zmienna wykorzysytwana przy miganiu wyświetlaczami przy pauzie
 
 struct _time PLAYER1_TIME;	//Struktura przechowująca informacje o czasie gracza nr 1
 struct _time PLAYER2_TIME;	//Struktura przechowująca informacje o czasie gracza nr 2
@@ -122,6 +124,7 @@ static void MX_TIM3_Init(void);
 static void MX_TIM9_Init(void);
 static void MX_TIM10_Init(void);
 static void MX_USART3_UART_Init(void);
+static void MX_TIM6_Init(void);
 static void MX_NVIC_Init(void);
 
 /* USER CODE BEGIN PFP */
@@ -294,6 +297,20 @@ void decrementPreset()		//Funkcja dekrementująca kursor presetu
 
 /*-------------------------------------------------------------------------------------------------
 FUNKCJE UI I PRZERWANIA--------------------------------------------------------------------------*/
+void onDisplays()
+{
+	tm1637SetBrightness('8');
+	tm1637SetBrightness2('8');
+	_display = 1;
+}
+
+void offDisplays()
+{
+	tm1637SetBrightness('0');
+	tm1637SetBrightness2('0');
+	_display = 0;
+}
+
 int timeToDisplay(struct _time* clock)	//Fukcja zwraca integera do wyświetlenia na ekranie
 {
 	return clock->minutes * 100 + clock->seconds;
@@ -384,7 +401,6 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)	//Przerwania Timeró
    	     clockTick();
    	}
 
-
    	if(htim->Instance == TIM3)	//Przepełnienie timera nr 3 -> odświeżenie wyświetlaczy
    	{
    		_refresh = 1;
@@ -394,10 +410,11 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)	//Przerwania Timeró
    	{
    		if(HAL_GPIO_ReadPin(GPIOB, UI_PAUSE_BUTTON) == GPIO_PIN_RESET)			//Przycisk pauzy
    		{
-   			if(_presetSelect != -1)
+   			if(_presetSelect != -1)		//Wciśnięcie przysicku pauzy rozpoczyna rozgrywkę
    			{
    				setClocks(_presetSelect);
    				_presetSelect = -1;
+   				_pause = 1;
    			}
 
    			else
@@ -468,6 +485,7 @@ int main(void)
   MX_TIM9_Init();
   MX_TIM10_Init();
   MX_USART3_UART_Init();
+  MX_TIM6_Init();
 
   /* Initialize interrupts */
   MX_NVIC_Init();
@@ -481,8 +499,7 @@ int main(void)
   //Wyświetlacze
   tm1637Init();
   tm1637Init2();
-  tm1637SetBrightness('8');		//Włączenie wyświetlacza nr 1
-  tm1637SetBrightness2('0');	//Wyłączenie wyświetlacza nr 2
+  onDisplays();						//Włączenie obu wyświetlaczy
 
   //WYBÓR PRESETU CZASOWEGO------------------------------------------------------------------------
   while(1)		//Wciśnięcie przycisku pauzy rozpocznie rozgrywkę z wybranym presetem
@@ -490,6 +507,7 @@ int main(void)
 	  if(_refresh == 1)
 	  {
 		  tm1637DisplayDecimal(_presetSelect + 1, 0);
+		  tm1637DisplayDecimal2(presets[_presetSelect].time.minutes * 100 + presets[_presetSelect].increment, 1);
 	  	  _refresh = 0;
 	  }
 
@@ -497,7 +515,6 @@ int main(void)
 		  break;
   }
 
-  tm1637SetBrightness2('8');		//Włączenie wyświetlacza nr 2
   _currentPlayer = 1;				//Domyślnie gracz 1 "ma ruch"
   UI_PLAYER1_DIODE_ON;				//Włączenie diody gracza 1
 
@@ -586,6 +603,27 @@ static void MX_NVIC_Init(void)
   /* TIM2_IRQn interrupt configuration */
   HAL_NVIC_SetPriority(TIM2_IRQn, 1, 0);
   HAL_NVIC_EnableIRQ(TIM2_IRQn);
+  /* TIM3_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(TIM3_IRQn, 1, 0);
+  HAL_NVIC_EnableIRQ(TIM3_IRQn);
+  /* TIM6_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(TIM6_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(TIM6_IRQn);
+  /* EXTI15_10_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(EXTI15_10_IRQn, 1, 0);
+  HAL_NVIC_EnableIRQ(EXTI15_10_IRQn);
+  /* TIM10_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(TIM10_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(TIM10_IRQn);
+  /* TIM9_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(TIM9_IRQn, 1, 0);
+  HAL_NVIC_EnableIRQ(TIM9_IRQn);
+  /* EXTI2_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(EXTI2_IRQn, 1, 0);
+  HAL_NVIC_EnableIRQ(EXTI2_IRQn);
+  /* EXTI1_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(EXTI1_IRQn, 1, 0);
+  HAL_NVIC_EnableIRQ(EXTI1_IRQn);
 }
 
 /* I2C1 init function */
@@ -692,6 +730,30 @@ static void MX_TIM3_Init(void)
 
 }
 
+/* TIM6 init function */
+static void MX_TIM6_Init(void)
+{
+
+  TIM_MasterConfigTypeDef sMasterConfig;
+
+  htim6.Instance = TIM6;
+  htim6.Init.Prescaler = 799;
+  htim6.Init.CounterMode = TIM_COUNTERMODE_UP;
+  htim6.Init.Period = 9999;
+  if (HAL_TIM_Base_Init(&htim6) != HAL_OK)
+  {
+    _Error_Handler(__FILE__, __LINE__);
+  }
+
+  sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
+  sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
+  if (HAL_TIMEx_MasterConfigSynchronization(&htim6, &sMasterConfig) != HAL_OK)
+  {
+    _Error_Handler(__FILE__, __LINE__);
+  }
+
+}
+
 /* TIM9 init function */
 static void MX_TIM9_Init(void)
 {
@@ -731,7 +793,7 @@ static void MX_TIM10_Init(void)
   TIM_ClockConfigTypeDef sClockSourceConfig;
 
   htim10.Instance = TIM10;
-  htim10.Init.Prescaler = 31;
+  htim10.Init.Prescaler = 159;
   htim10.Init.CounterMode = TIM_COUNTERMODE_UP;
   htim10.Init.Period = 999;
   htim10.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
@@ -820,16 +882,6 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(DEBUG_TIMER_GPIO_Port, &GPIO_InitStruct);
-
-  /* EXTI interrupt init*/
-  HAL_NVIC_SetPriority(EXTI1_IRQn, 1, 0);
-  HAL_NVIC_EnableIRQ(EXTI1_IRQn);
-
-  HAL_NVIC_SetPriority(EXTI2_IRQn, 1, 0);
-  HAL_NVIC_EnableIRQ(EXTI2_IRQn);
-
-  HAL_NVIC_SetPriority(EXTI15_10_IRQn, 1, 0);
-  HAL_NVIC_EnableIRQ(EXTI15_10_IRQn);
 
 }
 
