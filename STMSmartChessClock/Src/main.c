@@ -82,6 +82,8 @@ UART_HandleTypeDef huart3;
 #define	RAPID_10_0				6
 #define	RAPID_15_15				6
 
+#define BLUETOOTH_PRESET		8
+
 //STRUKTURA CZASU
 struct _time
 {
@@ -97,7 +99,15 @@ struct _preset
 	volatile uint8_t increment;
 };
 
-struct _preset presets[8];	//Struktura zawierająca presety czasowe
+struct _preset presets[9];	//Struktura zawierająca presety czasowe
+
+//STRUKTURA KOMUNIKATU BLUETOOTH
+struct _bluetooth
+{
+	volatile uint8_t operation;					//S -> start/stop	T -> zmiana gracza	P -> preset czasowy
+	volatile uint8_t player1time[4];			//Znacznik czasowy gracza 1 w milisekundach
+	volatile uint8_t player2time[4];			//Znacznik czasowy gracza 2 w milisekundach
+};
 
 //ZMIENNE GLOBALNE
 volatile uint8_t _currentPlayer;		//Zmienna oznaczajaca któremu z graczy uplywa czas
@@ -107,6 +117,7 @@ volatile uint8_t _gameOver = 0;			//Zmienna wyznaczająca koniec gry w przypadku
 volatile uint8_t _refresh = 0;			//Zmienna wykorzystywana do odświeżania wyświetlaczy zegara
 volatile int8_t _presetSelect = 0;		//Zmienna wykorzystywana przy wyborze presetu zegara
 volatile uint8_t _display;				//Zmienna wykorzysytwana przy miganiu wyświetlaczami przy pauzie
+
 
 struct _time PLAYER1_TIME;	//Struktura przechowująca informacje o czasie gracza nr 1
 struct _time PLAYER2_TIME;	//Struktura przechowująca informacje o czasie gracza nr 2
@@ -129,6 +140,63 @@ static void MX_NVIC_Init(void);
 
 /* USER CODE BEGIN PFP */
 /* Private function prototypes -----------------------------------------------*/
+
+/* FUNKCJE DO OBSŁUGI MODUŁU BLUETOOTH -------------------------------------------------------------*/
+
+struct _bluetooth buildBluetoothMessage(char operation)
+{
+	struct _bluetooth out;
+	uint32_t p1t, p2t;
+
+	p1t = PLAYER1_TIME.miliseconds + PLAYER1_TIME.seconds * 1000 + PLAYER1_TIME.minutes * 60000;
+	p2t = PLAYER2_TIME.miliseconds + PLAYER2_TIME.seconds * 1000 + PLAYER2_TIME.minutes * 60000;
+
+	out.operation = operation;
+	out.player1time[0] = (p1t >> 24) & 0xFF;
+	out.player1time[1] = (p1t >> 16) & 0xFF;
+	out.player1time[2] = (p1t >> 8) & 0xFF;
+	out.player1time[3] = p1t & 0xFF;
+
+	out.player2time[0] = (p2t >> 24) & 0xFF;
+	out.player2time[1] = (p2t >> 16) & 0xFF;
+	out.player2time[2] = (p2t >> 8) & 0xFF;
+	out.player2time[3] = p2t & 0xFF;
+
+	return out;
+}
+
+void sendBluetoothMessage(char operation)
+{
+	struct _bluetooth message = buildBluetoothMessage(operation);
+	uint16_t messageSize = 9;
+	uint8_t messageBytes[] = message.operation + message.player1time + message.player2time;
+
+	HAL_UART_Transmit_IT(&huart3, messageBytes, messageSize);
+}
+
+struct _bluetooth receiveBluetoothMessage()
+{
+	struct _bluetooth out;
+	uint16_t messageSize;		//rozmiary do ustalenia
+	uint8_t messageBytes;
+
+	HAL_UART_Receive_IT(&huart3, messageBytes, messageSize);
+
+	//cośtam cośtam
+
+	return out;
+}
+
+void addPresetFromBluetooth()
+{
+	struct _bluetooth message = receiveBluetoothMessage();
+
+	presets[9].time.minutes = 0;
+	presets[9].time.seconds = 0;
+	presets[9].time.miliseconds = 0;
+
+	presets[9].increment = 0;
+}
 
 /* FUNKCJE MIERZĄCE/OBS�?UGUJĄCE CZAS---------------------------------------------------------------*/
 void PresetInit()
@@ -326,6 +394,10 @@ void switchPlayers()				//Funkcja zmienajaca któremu graczowi ma uplywac czas
 			UI_PLAYER2_DIODE_ON;
 			clockIncrement();		//Inkrementacja czasu jest w osobnej funkcji żeby umożliwic zmianę graczy na pauzie bez dodawania czasu
 			_currentPlayer = 2;
+
+		   	//Wysłanie komunikatu bluetooth o zmianie gracza do aplikacji
+		   	sendBluetoothMessage('T');
+
 			return;
 		}
 
@@ -335,6 +407,10 @@ void switchPlayers()				//Funkcja zmienajaca któremu graczowi ma uplywac czas
 			UI_PLAYER2_DIODE_OFF;
 			clockIncrement();
 			_currentPlayer = 1;
+
+			//Wysłanie komunikatu bluetooth o zmianie gracza do aplikacji
+			sendBluetoothMessage('T');
+
 			return;
 		}
 	}
@@ -367,6 +443,10 @@ void switchTimer()				//Funkcja przełączająca timer podczas pauzowania/wznawi
 	   		HAL_TIM_Base_Stop_IT(&htim2);			//Zatrzymanie timera odmierzającego czas
 	   		HAL_TIM_Base_Stop_IT(&htim9);
 	  	}
+
+	   	//Wysłanie komunikatu bluetooth o starcie/stopie do aplikacji
+	   	sendBluetoothMessage('S');
+
 	 }
 }
 
@@ -412,6 +492,11 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)	//Przerwania Timeró
    		{
    			if(_presetSelect != -1)		//Wciśnięcie przysicku pauzy rozpoczyna rozgrywkę
    			{
+   				if(_presetSelect == BLUETOOTH_PRESET)	//Jeżeli gracz wybrał preset ósmy, czyli czeka na preset z aplikacji...
+   				{
+   					addPresetFromBluetooth();
+   				}
+
    				setClocks(_presetSelect);
    				_presetSelect = -1;
    				_pause = 1;
