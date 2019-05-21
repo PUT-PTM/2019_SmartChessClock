@@ -1,7 +1,7 @@
 [PreviousGenFiles]
-HeaderPath=C:/Users/frugo/Desktop/STM32/GIT/2019_SmartChessClock/STMSmartChessClock/Inc
+HeaderPath=C:/Users/lab/source/repos/chessclonck/STMSmartChessClock/Inc
 HeaderFiles=stm32l1xx_it.h;stm32l1xx_hal_conf.h;main.h;
-SourcePath=C:/Users/frugo/Desktop/STM32/GIT/2019_SmartChessClock/STMSmartChessClock/Src
+SourcePath=C:/Users/lab/source/repos/chessclonck/STMSmartChessClock/Src
 SourceFiles=stm32l1xx_it.c;stm32l1xx_hal_msp.c;main.c;
 
 [PreviousLibFiles]

@@ -141,7 +141,7 @@ static void MX_NVIC_Init(void);
 /* USER CODE BEGIN PFP */
 /* Private function prototypes -----------------------------------------------*/
 
-/* FUNKCJE DO OBSŁUGI MODUŁU BLUETOOTH -------------------------------------------------------------*/
+/* FUNKCJE DO OBS�?UGI MODU�?U BLUETOOTH -------------------------------------------------------------*/
 
 struct _bluetooth buildBluetoothMessage(char operation)
 {
@@ -169,7 +169,19 @@ void sendBluetoothMessage(char operation)
 {
 	struct _bluetooth message = buildBluetoothMessage(operation);
 	uint16_t messageSize = 9;
-	uint8_t messageBytes[] = message.operation + message.player1time + message.player2time;
+	uint8_t messageBytes[9];
+
+	messageBytes[0] = message.operation;
+	messageBytes[1] = message.player1time[0];
+	messageBytes[2] = message.player1time[1];
+	messageBytes[3] = message.player1time[2];
+	messageBytes[4] = message.player1time[3];
+
+	messageBytes[5] = message.player2time[0];
+	messageBytes[6] = message.player2time[1];
+	messageBytes[7] = message.player2time[2];
+	messageBytes[8] = message.player2time[3];
+
 
 	HAL_UART_Transmit_IT(&huart3, messageBytes, messageSize);
 }
@@ -190,6 +202,8 @@ struct _bluetooth receiveBluetoothMessage()
 void addPresetFromBluetooth()
 {
 	struct _bluetooth message = receiveBluetoothMessage();
+
+	//cośtam cośtam
 
 	presets[9].time.minutes = 0;
 	presets[9].time.seconds = 0;
@@ -353,7 +367,7 @@ void clockIncrement()								//FUNCKJA INKREMENTUJĄCA CZAS ZEGARA WYWO�?YWANA
 
 void incrementPreset()		//Funkcja inkrementująca kursor presetu
 {
-	if(_presetSelect < 7)
+	if(_presetSelect < 8)
 		_presetSelect++;
 }
 
@@ -576,15 +590,19 @@ int main(void)
   MX_NVIC_Init();
   /* USER CODE BEGIN 2 */
 
+  //INICJALIACJA WYŚWIETLACZY I EXTI
+  tm1637Init();
+  tm1637Init2();
+  onDisplays();										//Włączenie obu wyświetlaczy
+  HAL_GPIO_EXTI_IRQHandler(UI_PLAYER1_BUTTON);		//Odświeżenie EXTI
+  HAL_GPIO_EXTI_IRQHandler(UI_PLAYER2_BUTTON);
+  HAL_GPIO_EXTI_IRQHandler(UI_PAUSE_BUTTON);
+
 
   //INICJALIZACJA ZEGARA---------------------------------------------------------------------------
   PresetInit();						//Wypełnienie pamięci presetami
   HAL_TIM_Base_Start_IT(&htim3);	//Uruchomienie timera odświeżającego wyświetlacze
 
-  //Wyświetlacze
-  tm1637Init();
-  tm1637Init2();
-  onDisplays();						//Włączenie obu wyświetlaczy
 
   //WYBÓR PRESETU CZASOWEGO------------------------------------------------------------------------
   while(1)		//Wciśnięcie przycisku pauzy rozpocznie rozgrywkę z wybranym presetem
