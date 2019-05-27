@@ -203,13 +203,42 @@ void addPresetFromBluetooth()
 {
 	struct _bluetooth message = receiveBluetoothMessage();
 
-	//cośtam cośtam
+	uint32_t baseTime, increment;
+	uint8_t baseTimeArr, incrementArr;
 
-	presets[9].time.minutes = 0;
-	presets[9].time.seconds = 0;
-	presets[9].time.miliseconds = 0;
+	//Konwersja komunikatu na integery
+	baseTimeArr[0] = message.player1time[0];
+	baseTimeArr[1] = message.player1time[1];
+	baseTimeArr[2] = message.player1time[2];
+	baseTimeArr[3] = message.player1time[3];
 
-	presets[9].increment = 0;
+	incrementArr[0] = message.player2time[0];
+	incrementArr[1] = message.player2time[1];
+	incrementArr[2] = message.player2time[2];
+	incrementArr[3] = message.player2time[3];
+
+
+	baseTime = *(int *)baseTimeArr;
+	increment = *(int *)incrementArr;
+
+	//Uzupełnienie struktury presetu
+	unsigned int divider;
+
+	//Określenie liczby minut
+	divider = baseTime / 60000;
+	baseTime -= divider * 60000;
+	presets[9].time.minutes = divider * 60000;
+
+	//Określenie liczby sekund
+	divider = baseTime / 1000;
+	baseTime -= divider * 1000;
+	presets[9].time.minutes = divider * 1000;
+
+	//Określenie liczby milisekund
+	presets[9].time.miliseconds = baseTime;
+
+	//Przypisanie liczby sekund do inkrementu
+	presets[9].increment = increment / 1000;
 }
 
 /* FUNKCJE MIERZĄCE/OBS�?UGUJĄCE CZAS---------------------------------------------------------------*/
