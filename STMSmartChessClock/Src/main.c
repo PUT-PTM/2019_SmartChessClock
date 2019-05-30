@@ -562,7 +562,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)	//Przerwania Timeró
    		if(HAL_GPIO_ReadPin(GPIOB, UI_PLAYER1_BUTTON) == GPIO_PIN_RESET)		//Gracz 1
    		{
    			if(_presetSelect != -1)
-   				incrementPreset();
+   				decrementPreset();
 
    			else if(_currentPlayer == 1)
    			   	switchPlayers();
@@ -571,7 +571,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)	//Przerwania Timeró
    		if(HAL_GPIO_ReadPin(GPIOB, UI_PLAYER2_BUTTON) == GPIO_PIN_RESET)		//Gracz 2
    		{
    			if(_presetSelect != -1)
-   			   	decrementPreset();
+   			   	incrementPreset();
 
    			else if(_currentPlayer == 2)
    				switchPlayers();
