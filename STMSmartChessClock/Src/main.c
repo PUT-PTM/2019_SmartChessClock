@@ -189,12 +189,22 @@ void sendBluetoothMessage(char operation)
 struct _bluetooth receiveBluetoothMessage()
 {
 	struct _bluetooth out;
-	uint16_t messageSize;		//rozmiary do ustalenia
-	uint8_t messageBytes;
+	uint16_t messageSize = 9;		//rozmiary do ustalenia
+	uint8_t messageBytes[9];
 
 	HAL_UART_Receive_IT(&huart3, messageBytes, messageSize);
 
-	//cośtam cośtam
+	out.operation = messageBytes[0];
+
+	out.player1time[0] = messageBytes[1];
+	out.player1time[1] = messageBytes[2];
+	out.player1time[2] = messageBytes[3];
+	out.player1time[3] = messageBytes[4];
+
+	out.player2time[0] = messageBytes[5];
+	out.player2time[1] = messageBytes[6];
+	out.player2time[2] = messageBytes[7];
+	out.player2time[3] = messageBytes[8];
 
 	return out;
 }
@@ -204,7 +214,7 @@ void addPresetFromBluetooth()
 	struct _bluetooth message = receiveBluetoothMessage();
 
 	uint32_t baseTime, increment;
-	uint8_t baseTimeArr, incrementArr;
+	uint8_t baseTimeArr[4], incrementArr[4];
 
 	//Konwersja komunikatu na integery
 	baseTimeArr[0] = message.player1time[0];
