@@ -73,6 +73,9 @@ UART_HandleTypeDef huart3;
 #define DEBUG_DIODE1_OFF		HAL_GPIO_WritePin(GPIOC, GPIO_PIN_8, GPIO_PIN_RESET)	//Zapalenie niebieskiej diody na plytce
 #define UI_PAUSE_BUTTON			GPIO_PIN_1												//Uchwyt przycisku start/stop
 
+//Definicje presetów czasowych (poniżej inicjalizacja w funkcji PresetInit)
+#define NUMBER_OF_PRESETS		12
+
 #define BULLET_1_0				0
 #define BULLET_2_1				1
 #define BLITZ_3_0				2
@@ -80,9 +83,13 @@ UART_HandleTypeDef huart3;
 #define BLITZ_5_0				4
 #define	BLITZ_5_3				5
 #define	RAPID_10_0				6
-#define	RAPID_15_15				6
+#define	RAPID_15_0				7
+#define	RAPID_15_15				8
+#define	RAPID_25_0				9
+#define	RAPID_25_10				10
+#define CLASSICAL_30_0			11
 
-#define BLUETOOTH_PRESET		8
+#define BLUETOOTH_PRESET		12
 
 //STRUKTURA CZASU
 struct _time
@@ -99,7 +106,7 @@ struct _preset
 	volatile uint8_t increment;
 };
 
-struct _preset presets[9];	//Struktura zawierająca presety czasowe
+struct _preset presets[NUMBER_OF_PRESETS];	//Struktura zawierająca presety czasowe
 
 //STRUKTURA KOMUNIKATU BLUETOOTH
 struct _bluetooth
@@ -189,13 +196,9 @@ void sendBluetoothMessage(char operation)
 struct _bluetooth receiveBluetoothMessage()
 {
 	struct _bluetooth out;
-	uint16_t messageSize = 9;		//rozmiary do ustalenia
+	uint16_t messageSize = 9;
 	uint8_t messageBytes[9];
 
-
-		int i;
-		for(i = 0; i < 9; ++i)
-			messageBytes[i] = '\0';
 
 	HAL_UART_Receive_IT(&huart3, messageBytes, messageSize);
 
@@ -243,70 +246,102 @@ void addPresetFromBluetooth()
 	//Określenie liczby minut
 	divider = baseTime / 60000;
 	baseTime -= divider * 60000;
-	presets[9].time.minutes = divider * 60000;
+	presets[BLUETOOTH_PRESET].time.minutes = divider * 60000;
 
 	//Określenie liczby sekund
 	divider = baseTime / 1000;
 	baseTime -= divider * 1000;
-	presets[9].time.minutes = divider * 1000;
+	presets[BLUETOOTH_PRESET].time.minutes = divider * 1000;
 
 	//Określenie liczby milisekund
-	presets[9].time.miliseconds = baseTime;
+	presets[BLUETOOTH_PRESET].time.miliseconds = baseTime;
 
 	//Przypisanie liczby sekund do inkrementu
-	presets[9].increment = increment / 1000;
+	presets[BLUETOOTH_PRESET].increment = increment / 1000;
 }
 
 /* FUNKCJE MIERZĄCE/OBS�?UGUJĄCE CZAS---------------------------------------------------------------*/
 void PresetInit()
 {
 	//BULLET 1+0
-	presets[0].time.miliseconds = 0;
-	presets[0].time.seconds = 0;
-	presets[0].time.minutes = 1;
-	presets[0].increment = 0;
+	presets[BULLET_1_0].time.miliseconds = 0;
+	presets[BULLET_1_0].time.seconds = 0;
+	presets[BULLET_1_0].time.minutes = 1;
+	presets[BULLET_1_0].increment = 0;
 
 	//BULLET 2+1
-	presets[1].time.miliseconds = 0;
-	presets[1].time.seconds = 0;
-	presets[1].time.minutes = 2;
-	presets[1].increment = 1;
+	presets[BULLET_2_1].time.miliseconds = 0;
+	presets[BULLET_2_1].time.seconds = 0;
+	presets[BULLET_2_1].time.minutes = 2;
+	presets[BULLET_2_1].increment = 1;
 
 	//BLITZ 3+0
-	presets[2].time.miliseconds = 0;
-	presets[2].time.seconds = 0;
-	presets[2].time.minutes = 3;
-	presets[2].increment = 0;
+	presets[BLITZ_3_0].time.miliseconds = 0;
+	presets[BLITZ_3_0].time.seconds = 0;
+	presets[BLITZ_3_0].time.minutes = 3;
+	presets[BLITZ_3_0].increment = 0;
 
 	//BLITZ 3+2
-	presets[3].time.miliseconds = 0;
-	presets[3].time.seconds = 0;
-	presets[3].time.minutes = 3;
-	presets[3].increment = 2;
+	presets[BLITZ_3_2].time.miliseconds = 0;
+	presets[BLITZ_3_2].time.seconds = 0;
+	presets[BLITZ_3_2].time.minutes = 3;
+	presets[BLITZ_3_2].increment = 2;
 
 	//BLITZ 5+0
-	presets[4].time.miliseconds = 0;
-	presets[4].time.seconds = 0;
-	presets[4].time.minutes = 5;
-	presets[4].increment = 0;
+	presets[BLITZ_5_0].time.miliseconds = 0;
+	presets[BLITZ_5_0].time.seconds = 0;
+	presets[BLITZ_5_0].time.minutes = 5;
+	presets[BLITZ_5_0].increment = 0;
 
 	//BLITZ 5+3
-	presets[5].time.miliseconds = 0;
-	presets[5].time.seconds = 0;
-	presets[5].time.minutes = 5;
-	presets[5].increment = 3;
+	presets[BLITZ_5_3].time.miliseconds = 0;
+	presets[BLITZ_5_3].time.seconds = 0;
+	presets[BLITZ_5_3].time.minutes = 5;
+	presets[BLITZ_5_3].increment = 3;
 
 	//RAPID 10+0
-	presets[6].time.miliseconds = 0;
-	presets[6].time.seconds = 0;
-	presets[6].time.minutes = 10;
-	presets[6].increment = 0;
+	presets[RAPID_10_0].time.miliseconds = 0;
+	presets[RAPID_10_0].time.seconds = 0;
+	presets[RAPID_10_0].time.minutes = 10;
+	presets[RAPID_10_0].increment = 0;
+
+	//RAPID 15+0
+	presets[RAPID_15_0].time.miliseconds = 0;
+	presets[RAPID_15_0].time.seconds = 0;
+	presets[RAPID_15_0].time.minutes = 15;
+	presets[RAPID_15_0].increment = 0;
 
 	//RAPID 15+15
-	presets[7].time.miliseconds = 0;
-	presets[7].time.seconds = 0;
-	presets[7].time.minutes = 15;
-	presets[7].increment = 15;
+	presets[RAPID_15_15].time.miliseconds = 0;
+	presets[RAPID_15_15].time.seconds = 0;
+	presets[RAPID_15_15].time.minutes = 15;
+	presets[RAPID_15_15].increment = 15;
+
+	//RAPID 25+0
+	presets[RAPID_25_0].time.miliseconds = 0;
+	presets[RAPID_25_0].time.seconds = 0;
+	presets[RAPID_25_0].time.minutes = 25;
+	presets[RAPID_25_0].increment = 0;
+
+	//RAPID 25+10
+	presets[RAPID_25_10].time.miliseconds = 0;
+	presets[RAPID_25_10].time.seconds = 0;
+	presets[RAPID_25_10].time.minutes = 25;
+	presets[RAPID_25_10].increment = 10;
+
+	//CLASSICAL 30+0
+	presets[CLASSICAL_30_0].time.miliseconds = 0;
+	presets[CLASSICAL_30_0].time.seconds = 0;
+	presets[CLASSICAL_30_0].time.minutes = 30;
+	presets[CLASSICAL_30_0].increment = 0;
+
+	//BLUETOOTH
+	presets[BLUETOOTH_PRESET].time.miliseconds = 0;
+	presets[BLUETOOTH_PRESET].time.seconds = 0;
+	presets[BLUETOOTH_PRESET].time.minutes = 99;
+	presets[BLUETOOTH_PRESET].increment = 99;
+
+
 }
 
 void setClocks(int presetIndex)						//Funkcja ustawia czas obu zegarów z numeru presetu
@@ -359,7 +394,7 @@ void increment(struct _time* clock, int secondInc)	//Funkcja inkrementująca dan
 	}
 }
 
-void clockTick()									//FUNCKJA ZMNIEJSZAJĄCA CZAS ZEGARA WYWO�?YWANA W PRZERWANIU TIMERA
+void clockTick()									//FUNCKJA ZMNIEJSZAJĄCA CZAS ZEGARA WYWO�?YWANA W PRZERWANIU TIMERA i całą logikę z tym związaną
 {
 	if(_currentPlayer == 1)
 	{
@@ -392,7 +427,7 @@ void clockTick()									//FUNCKJA ZMNIEJSZAJĄCA CZAS ZEGARA WYWO�?YWANA W PR
 	}
 }
 
-void clockIncrement()								//FUNCKJA INKREMENTUJĄCA CZAS ZEGARA WYWO�?YWANA W PRZERWANIU PRZYCISKÓW
+void clockIncrement()								//FUNCKJA INKREMENTUJĄCA CZAS ZEGARA WYWO�?YWANA W PRZERWANIU PRZYCISKÓW i całą logikę z tym związaną
 {
 	if(_pause == 0)	//Jeżeli gra jest spauzowania nie wykonujemy inkrementacji
 	{
@@ -412,7 +447,7 @@ void clockIncrement()								//FUNCKJA INKREMENTUJĄCA CZAS ZEGARA WYWO�?YWANA
 
 void incrementPreset()		//Funkcja inkrementująca kursor presetu
 {
-	if(_presetSelect < 8)
+	if(_presetSelect < NUMBER_OF_PRESETS)
 		_presetSelect++;
 }
 
@@ -943,7 +978,7 @@ static void MX_TIM10_Init(void)
   htim10.Instance = TIM10;
   htim10.Init.Prescaler = 159;
   htim10.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim10.Init.Period = 999;
+  htim10.Init.Period = 499;
   htim10.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
   if (HAL_TIM_Base_Init(&htim10) != HAL_OK)
   {
