@@ -192,9 +192,15 @@ struct _bluetooth receiveBluetoothMessage()
 	uint16_t messageSize = 9;		//rozmiary do ustalenia
 	uint8_t messageBytes[9];
 
+
+		int i;
+		for(i = 0; i < 9; ++i)
+			messageBytes[i] = '\0';
+
 	HAL_UART_Receive_IT(&huart3, messageBytes, messageSize);
 
 	out.operation = messageBytes[0];
+
 
 	out.player1time[0] = messageBytes[1];
 	out.player1time[1] = messageBytes[2];

@@ -1,11 +1,8 @@
 package com.example.zegarszachowyklient;
 
 import android.Manifest;
-import android.annotation.TargetApi;
-import android.app.Activity;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
-import android.bluetooth.BluetoothSocket;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
@@ -13,7 +10,6 @@ import android.content.IntentFilter;
 import android.graphics.drawable.ColorDrawable;
 import android.os.Build;
 import android.os.CountDownTimer;
-import android.support.annotation.RequiresApi;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
@@ -28,16 +24,12 @@ import android.widget.ListView;
 import android.widget.PopupWindow;
 import android.widget.TextView;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
-import java.util.Set;
 import java.util.UUID;
 
-public class MainActivity extends AppCompatActivity implements AdapterView.OnItemClickListener{
-
+public class MainActivity extends AppCompatActivity{
+    //Clock variables
     public static final String EXTRA_MESSAGE = "com.example.zegarszachowyklient.MESSAGE";
     public static TimePreset currentTP = new TimePreset(300000, 3000);
     private boolean running = false;
@@ -50,16 +42,41 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
     private long p2lastturn = 0;
     private boolean bConnection = false;
     private boolean bInterfaceVisible = true;
-
+    private boolean bConnectButtonVisible = false;
+    //Bluetooth variables
     public BluetoothConnection bBluetoothConnection = new BluetoothConnection(MainActivity.this);
     public ArrayList<BluetoothDevice> bDevices = new ArrayList<>();
     public DeviceListAdapter bDeviceListAdapter;
     public ListView lvNewDevices;
-    private static final UUID MY_UUID_INSECURE = UUID.fromString("8ce255c0-200a-11e0-ac64-0800200c9a66");
+    private static final UUID MY_UUID_INSECURE = UUID.fromString("d1fc1fc0-2346-4de5-b4d8-a52fd2a5900a");
 
     public BluetoothDevice bDevice;
     public BluetoothAdapter bAdapter;
-    public Set<BluetoothDevice> bPairedDevices;
+
+    public void showNoTime(boolean player)
+    {
+        LayoutInflater inflater = (LayoutInflater) MainActivity.this.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
+        View layout = inflater.inflate(R.layout.notime,null);
+        if(player)
+            ((TextView)layout.findViewById(R.id.noTimeText)).setText("Time of the 1st player run out!");
+        else
+            ((TextView)layout.findViewById(R.id.noTimeText)).setText("Time of the 2nd player run out!");
+        float density=MainActivity.this.getResources().getDisplayMetrics().density;
+        final PopupWindow pw = new PopupWindow(layout, (int)density*240, (int)density*150, true);
+        pw.setBackgroundDrawable(new ColorDrawable(android.graphics.Color.TRANSPARENT));
+        pw.setTouchInterceptor(new View.OnTouchListener() {
+            public boolean onTouch(View v, MotionEvent event) {
+                if(event.getAction() == MotionEvent.ACTION_OUTSIDE) {
+                    pw.dismiss();
+                    return true;
+                }
+                return false;
+            }
+        });
+        pw.setOutsideTouchable(true);
+        pw.showAtLocation(layout, Gravity.CENTER, 0, 0);
+    }
+
 
     public static byte[] intToByteArray(int a)
     {
@@ -70,7 +87,6 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
         ret[0] = (byte) ((a >> 24) & 0xFF);
         return ret;
     }
-
 
     //Messages to send over Bluetooth
     private class Message
@@ -90,7 +106,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
             time2 = converter.getInt();
         }
 
-        public Message (char code, int time1, int time2)
+        public Message (int code, int time1, int time2)
         {
             this.code = (byte)code;
             this.time1 = time1;
@@ -147,6 +163,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
         return buffer;
     }
 
+    //Layout Elements
     TextView p1Time;
     TextView p2Time;
     TextView p1Moves;
@@ -205,6 +222,10 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                     String deviceName = bDevices.get(i).getName();
                     String deviceAddress = bDevices.get(i).getAddress();
 
+                    bConnectButtonVisible = true;
+                    bStartConnection.setText("Connect\nwith\n" + deviceName);
+                    updateConnectButtonVisibility();
+
                     if(Build.VERSION.SDK_INT > Build.VERSION_CODES.JELLY_BEAN_MR2)
                     {
 
@@ -217,6 +238,15 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
             }
         }
     };
+
+    //UI update functions
+    void updateConnectButtonVisibility()
+    {
+        if (bConnectButtonVisible)
+            bStartConnection.setVisibility(View.VISIBLE);
+        else
+            bStartConnection.setVisibility(View.INVISIBLE);
+    }
 
     void updateBluetoothButton()
     {
@@ -239,9 +269,10 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-        lvNewDevices = findViewById(R.id.lvNewDevices);
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        //connecting objects with their visual counterparts
+        lvNewDevices = findViewById(R.id.lvNewDevices);
         p1Time = (TextView) findViewById(R.id.Time_P1);
         p2Time = (TextView) findViewById(R.id.Time_P2);
         p1Moves = (TextView) findViewById(R.id.Moves_P1);
@@ -254,13 +285,15 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
         Bluetooth_button = findViewById(R.id.Bluetooth_button);
         bStartConnection = findViewById(R.id.bStartConnection);
         bDiscover = findViewById(R.id.bDiscover);
-        //Reset = (Button) findViewById(R.id.Reset);
         lvNewDevices = findViewById(R.id.lvNewDevices);
+
+        //displaying initial values on screen
         p1Time.setText(displayTime(p1time));
         p2Time.setText(displayTime(p2time));
         p1LastTurn.setText("(-" + displayTime(0) + ")");
         p2LastTurn.setText("(-" + displayTime(0) + ")");
         TimePreset.setText(displayTime(currentTP.getOverallTime()) + " + " + displayTime(currentTP.getIncrementation()));
+        updateConnectButtonVisibility();
 
         IntentFilter filter = new IntentFilter(BluetoothDevice.ACTION_BOND_STATE_CHANGED);
         registerReceiver(bBroadCastReceiver, filter);
@@ -301,7 +334,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                     if (bBluetoothConnection.connected) {
                         Message receivedMSG = new Message(bBluetoothConnection.lastMSG);
                         switch (receivedMSG.code) {
-                            case 'S': {
+                            case 83: {
                                 p1time = (long) receivedMSG.time1;
                                 p2time = (long) receivedMSG.time2;
                                 if (running) {
@@ -327,6 +360,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                                                 p1Time.setText(displayTime(0));
                                                 p1lastturn += 10;
                                                 p1LastTurn.setText("(-" + displayTime(p1lastturn) + ")");
+                                                showNoTime(true);
                                             }
 
                                         };
@@ -359,6 +393,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                                                 p2Time.setText(displayTime(0));
                                                 p2lastturn += 10;
                                                 p2LastTurn.setText("(-" + displayTime(p2lastturn) + ")");
+                                                showNoTime(false);
                                             }
                                         };
                                         p2.start();
@@ -366,7 +401,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                                 }
                                 break;
                             }
-                            case 'T': {
+                            case 84: {
                                 p1time = (long) receivedMSG.time1;
                                 p2time = (long) receivedMSG.time2;
                                 if (running) {
@@ -394,6 +429,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                                                 p1Time.setText(displayTime(0));
                                                 p1lastturn += 10;
                                                 p1LastTurn.setText("(-" + displayTime(p1lastturn) + ")");
+                                                showNoTime(true);
                                             }
                                         };
                                         p1.start();
@@ -421,6 +457,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                                                 p2Time.setText(displayTime(0));
                                                 p2lastturn += 10;
                                                 p2LastTurn.setText("(-" + displayTime(p2lastturn) + ")");
+                                                showNoTime(false);
                                             }
                                         };
                                         p2.start();
@@ -511,6 +548,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                                 p1Time.setText(displayTime(0));
                                 p1lastturn += 10;
                                 p1LastTurn.setText("(-" + displayTime(p1lastturn) + ")");
+                                showNoTime(true);
                             }
 
                         };
@@ -545,6 +583,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                                 p2Time.setText(displayTime(0));
                                 p2lastturn += 10;
                                 p2LastTurn.setText("(-" + displayTime(p2lastturn) + ")");
+                                showNoTime(false);
                             }
                         };
                         p2.start();
@@ -582,6 +621,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                                 p1Time.setText(displayTime(0));
                                 p1lastturn += 10;
                                 p1LastTurn.setText("(-" + displayTime(p1lastturn) + ")");
+                                showNoTime(true);
                             }
                         };
                         p1.start();
@@ -612,6 +652,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                                 p2Time.setText(displayTime(0));
                                 p2lastturn += 10;
                                 p2LastTurn.setText("(-" + displayTime(p2lastturn) + ")");
+                                showNoTime(false);
                             }
                         };
                         p2.start();
@@ -638,7 +679,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
         super.onResume();
         TimePreset.setText(displayTime(currentTP.getOverallTime()) + " + " + displayTime(currentTP.getIncrementation()));
         if (bAdapter.isEnabled()) {
-            Message presetToSend = new Message('P', (int) currentTP.getOverallTime(), (int) currentTP.getIncrementation());
+            Message presetToSend = new Message(80, (int) currentTP.getOverallTime(), (int) currentTP.getIncrementation());
             byte[] encrypted = presetToSend.encrypt();
             if(bBluetoothConnection !=null)
                 if(bBluetoothConnection.connected)
@@ -671,6 +712,8 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
 
     public void bDiscover(View view)
     {
+        bConnectButtonVisible = false;
+        updateConnectButtonVisibility();
         bDevices = new ArrayList<>();
         if(bAdapter.isDiscovering())
         {
@@ -717,23 +760,6 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
         unregisterReceiver(bBroadCastReceiver);
         unregisterReceiver(bBroadCastReceiver2);
         bBluetoothConnection.bProgressDialog.dismiss();
-    }
-
-    public void onItemClick(AdapterView<?> adapterView, View view, int i, long l)
-    {
-        bAdapter.cancelDiscovery();
-        String deviceName = bDevices.get(i).getName();
-        String deviceAddress = bDevices.get(i).getAddress();
-
-        if(Build.VERSION.SDK_INT > Build.VERSION_CODES.JELLY_BEAN_MR2)
-        {
-
-            bDevices.get(i).createBond();
-
-            bDevice = bDevices.get(i);
-            bConnection = true;
-            updateBluetoothButton();
-            bBluetoothConnection = new BluetoothConnection(MainActivity.this);
-        }
+        bBluetoothConnection.cancel();
     }
 }

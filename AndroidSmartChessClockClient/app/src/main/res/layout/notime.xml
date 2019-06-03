@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/popup_element"
+    android:layout_width="240dp"
+    android:layout_height="100dp"
+    android:background="@drawable/customborder">
+
+
+    <TextView
+        android:id="@+id/txt"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginLeft="30dp"
+        android:gravity="center"
+        android:text="Time Out!"
+        android:textAppearance="?android:attr/textAppearanceMedium"
+        android:textSize="33sp"
+        android:textStyle="bold"></TextView>
+
+    <TextView
+        android:id="@+id/noTimeText"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginLeft="15dp"
+        android:text="Time of 1st player run out!"
+        android:textAppearance="?android:attr/textAppearanceMedium"
+        android:layout_below="@+id/txt"
+        android:textSize="15sp"></TextView>
+</RelativeLayout>

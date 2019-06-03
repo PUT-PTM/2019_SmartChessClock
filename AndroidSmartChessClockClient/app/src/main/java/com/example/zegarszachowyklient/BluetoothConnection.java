@@ -10,6 +10,8 @@ import android.content.Context;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.util.UUID;
 
 public class BluetoothConnection {
@@ -17,7 +19,7 @@ public class BluetoothConnection {
 
     private static final String appName = "Smart Chess Clock";
 
-    private static final UUID MY_UUID_INSECURE = UUID.fromString("8ce255c0-200a-11e0-ac64-0800200c9a66");
+    private static final UUID MY_UUID_INSECURE = UUID.fromString("d1fc1fc0-2346-4de5-b4d8-a52fd2a5900a");
 
     private final BluetoothAdapter bAdapter;
     Context mContext;
@@ -97,18 +99,29 @@ public class BluetoothConnection {
 
             try {
                 tmp = bDevice.createRfcommSocketToServiceRecord(deviceUUID);
+
+
             } catch (IOException e) {
                 e.printStackTrace();
             }
-
             bSocket = tmp;
             bAdapter.cancelDiscovery();
 
             try {
                 bSocket.connect();
+                //tmp.connect();
             } catch (IOException e) {
                 try {
-                    bSocket.close();
+                    //bSocket.close();
+                    bSocket = (BluetoothSocket) bDevice.getClass().getMethod("createRfcommSocket", new Class[]{int.class}).invoke(bDevice,1);
+                    bSocket.connect();
+
+                } catch (IllegalAccessException e1) {
+                    e1.printStackTrace();
+                } catch (InvocationTargetException e1) {
+                    e1.printStackTrace();
+                } catch (NoSuchMethodException e1) {
+                    e1.printStackTrace();
                 } catch (IOException e1) {
                     e1.printStackTrace();
                 }
@@ -226,5 +239,15 @@ public class BluetoothConnection {
     public void write(byte[] message)
     {
         bConnectedThread.write(message);
+    }
+
+    public void  cancel()
+    {
+        if (bInsecureAccpetThread != null)
+            bInsecureAccpetThread.cancel();
+        if (bConnectThread != null)
+            bConnectThread.cancel();
+        if (bConnectedThread != null)
+            bConnectedThread.cancel();
     }
 }
