@@ -10,7 +10,7 @@ Zegar można sparować ze smartfonem poprzez dedykowaną aplikację korzystając
 
 
 # Charakterystyka zegara
--	Zegar posiada pulę wbudowanych presetów czasowych. Zawiera ona wszystkie najpopularniejsze formaty czasowe wykorzystywane w szachach szybkich. Kontrole czasowe takie jak Hyper Bullet czy Ultra Bullet nie zostały zaimplementowane z uwagi na bycie zbyt szybkimi i nie praktycznymi do grania na fizycznej szachownicy
+-	Zegar posiada pulę wbudowanych presetów czasowych. Zawiera ona wszystkie najpopularniejsze formaty czasowe wykorzystywane w szachach szybkich. Kontrole czasowe takie jak Hyper Bullet czy Ultra Bullet nie zostały zaimplementowane z uwagi na bycie zbyt szybkimi i nie praktycznymi do grania na fizycznej szachownicy.
 -	Istnieje możliwość dokładnej konfiguracji presetu czasowego, a następnie wgranie go na zegar poprzez moduł bluetooth z poziomu aplikacji android. Taki preset należy wgrać zawsze po uruchomieniu zegara i wybraniu odpowiedniego trybu.
 -	Zegar posiada 2 liczniki czasu dla każdego z graczy, które zliczają upływający czas z dokładnością do jednej milisekundy.
 -	Wyświetlacze są odświeżane z częstotliwością 100Hz oraz posiadają migające dwukropki odzielające liczbę minut od liczby sekund danego gracza.
@@ -18,9 +18,15 @@ Zegar można sparować ze smartfonem poprzez dedykowaną aplikację korzystając
 -	W odróżnieniu od wiodących zegarów elektronicznych po upływie czasu jednego z graczy zegar "blokuje" się na nim i nie pozwala na włączenie upływu czasu drugiego gracza. Jest to duże udogodnienie, ponieważ nie istnieje możliwość że obu graczom "skończy" się czas.
 -	Przyciski graczy w porównaniu do innych zegarów elektronicznych korzystających z klasycznych przycisków do przełączania czasu są duże, mają wyczuwalny ale nie zbyt głęboki skok, oraz posiadają wbudowane diody led, które informują któremu z graczy obecnie upływa czas.
 
+# Charakterystyka aplikacji na urządzenia z systemem Android
+- Aplikacja umożliwia sparowanie oraz nawiązanie połączenia między urządzeniem i zegarem. W tym trybie działania czas wyświetlany na ekranie jest z sychnronizowany z zegarem. 
+- Oprogramowanie rozszerza funkcjonalność zegara o takie funkcjonalności jak informacja o długości poprzedniego ruchu dla każdego z graczy, wyświetlanie czasu z dokładnością do 10ms oraz tworzenie własnych formatów czasowych.
+- Aplikacja może również działać w trybie "StandAlone" (bez zegara) zachowując pełną funkcjonalność.
+- W przypadku wyczerpania czasu jednego z graczy pojawia się stosowna informacja. Jest to pomocna funkcja w sytuacjach ciężkich do rozstrzygnięcia.
+
 # Presety czasowe i ich wybór
 Po uruchomieniu zegara należy wybrać preset czasowy poruszając się przyciskami graczy. Na lewym wyświetlaczu widnieje numer presetu, na prawym odpowiednio przed dwukropkiem liczba minut, a za dwukropkiem, liczba dodawanych sekund co ruch.
-Wybór presetu potwierdzamy przyciskiem pauzy. Wybór ostatniego presetu powoduje, że zegar oczekuje na przesłanie mu skonfigurowanego presetu z aplikacji android.
+Wybór presetu potwierdzamy przyciskiem pauzy. Wybór ostatniego presetu powoduje, że zegar oczekuje na przesłanie mu skonfigurowanego presetu z aplikacji android. Edytor formatów czasowych na urządzeniu mobilnym można uruchomić poprzez naciśnięcie obszaru presetem w oknie głównym. Zatwierdzenie nowego presetu wysyła odpowiednią informację jeżeli połączenie zostało wcześniej nawiązane.
 Po wybraniu presetu wystarczy wcisnąć przycisk pauzy. Od tego momentu czas zacznie upływać graczowi, którego przycisk jest zapalony.
 
 # Rozgrywka
@@ -36,7 +42,14 @@ Niektóre presety czasowe oferują dodawanie czasu gracza po wykonanym ruchu. Na
 Limitem jest liczba 99 minut i 99 sekund. Oczywiście zegar zapamięta czas powyżej tej wartości, ale wyświetlacze nie będą go poprawnie wyświetlały zanim spadnie poniżej 100 minut.
 Taka sytuacja jest jednakże trudno osiągalna i wymaga niezmiernie szybkich palcy oraz wiele samozapału.
 
-# Aspekty czysto techniczne - częśc programowa zegara
+# Wykorzystane narzędzia
+## STM32
+## Android
+- Android Studio 3.3.1 (Build #AI-182.5107.16.33.5264788, built on January 29, 2019)
+- JRE: 1.8.0_152-release-1248-b01 amd64
+- JVM: OpenJDK 64-Bit Server VM by JetBrains s.r.o
+
+# Aspekty czysto techniczne - część programowa zegara
 Logika zegara została napisana w języku C. Sam zegar śmiga na zawrotnych 500 liniach kodu, nie licząc biblioteki do obsługi wyświetlaczy. Przechowywanie danych o czasach obu graczy,
 oraz ich inkrementacja/dekrementacja zostały oparte o struktury i tablice. Program pamięta osobno liczbę minut, sekund i milisekund dla każdego z graczy co czyni kod nieco czytelniejszym i łatwiejszym w rozwoju.
 Płytka ma na tyle dużą moc obliczeniową, że w jednym przerwaniu timera może obsłużyć całą logikę związaną z upłynięciem jednej milisekundy (a jest tego sporo) zanim faktycznie milisekunda minie.
@@ -50,7 +63,27 @@ Płytka ma na tyle dużą moc obliczeniową, że w jednym przerwaniu timera moż
 -	3 przyciski sterujące posiadają zaimplementowany debouncing, który opóźnia ich czas reakcji do 5ms w zamian za dokładny pomiar stanu na pinach GPIO
 -	Z uwagi na dużą liczbę potrzebnych pinów dla przycisków sterujących (po cztery na każdy przycisk graczy oraz 2 na przycisk pauzy) wszystkie przyciski sterujące posiadają wspólną masę.
 
+# Aspekty czysto techniczne - część programowa aplikacji Android
+Cała aplikacja została przygotowana w programie Android Studio z wykorzystaniem języka programowania Java (logika aplikacji) oraz 
+plików XML (oprawa graficzna). 
+Oprogramowanie przechowuje czas obu graczy w postaci ilości milisekund, a za przedstawianie go w czytelniejszej dla człowieka formie odpowiedzialna jest odpowiednia funkcja.
+Presety czasowe są reprezentowane za pomocą obiektów autorskiej klasy TimePreset, co umożliwiło stworzenie prostego i intuicyjnego edytora formatów.
+W celu zapewnienia synchronicznej pracy aplikacji, każda funkcjonalność jest realizowana na innym wątku.
+
+# Ulepszenia w przyszłości
+- Komunikacja Bluetooth nie działa do końca poprawnie po stronie aplikacji android.
+- Edytor presetów może być zaimplementowany również bezpośrednio na zegarze.
+
+# Przypisania
+Wszystkie grafiki widoczne w interfejsie graficznym aplikacji android pochodzą lub są wygenerowane na podstawie darmowych zasobów
+zawartych w programie Android Studio.
+
+# Licencja
+MIT
 
 ### Twórcy:
 - Marcin Borysiewicz
 - Krystian Duchnowski
+
+The project was conducted during the Microprocessor Lab course held by the Institute of Control and Information Engineering, Poznan University of Technology.
+Supervisor: Tomasz Mańkowski
