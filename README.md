@@ -44,6 +44,9 @@ Taka sytuacja jest jednakże trudno osiągalna i wymaga niezmiernie szybkich pal
 
 # Wykorzystane narzędzia
 ## STM32
+- Płytka STM32L100CDISCOVERY
+- IDE STM32 System Workbench
+- Generator kodu inicjalizującego STM32CubeMX
 ## Android
 - Android Studio 3.3.1 (Build #AI-182.5107.16.33.5264788, built on January 29, 2019)
 - JRE: 1.8.0_152-release-1248-b01 amd64
@@ -69,6 +72,14 @@ plików XML (oprawa graficzna).
 Oprogramowanie przechowuje czas obu graczy w postaci ilości milisekund, a za przedstawianie go w czytelniejszej dla człowieka formie odpowiedzialna jest odpowiednia funkcja.
 Presety czasowe są reprezentowane za pomocą obiektów autorskiej klasy TimePreset, co umożliwiło stworzenie prostego i intuicyjnego edytora formatów.
 W celu zapewnienia synchronicznej pracy aplikacji, każda funkcjonalność jest realizowana na innym wątku.
+
+# Jak skompilować
+- Podłączyć wszystkie piny według schematu zawartego w pliku STMSmartChessClock\STMSmartChessClock.ioc
+- Podłączyć płytkę do komputera przez port mikto-usb
+- Skompilować kod i wgrać go na płytkę poprzez IDE System Workbench z pliku STMSmartChessClock\.cproject
+- Uruchomić projekt w Android Studio
+- Podłączyć urządzenie mobilne do komputera
+- Zbudować i uruchomić projekt według standarowych kroków
 
 # Ulepszenia w przyszłości
 - Komunikacja Bluetooth nie działa do końca poprawnie po stronie aplikacji android.
