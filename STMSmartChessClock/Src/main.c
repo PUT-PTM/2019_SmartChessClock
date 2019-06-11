@@ -582,6 +582,15 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)	//Przerwania Timeró
 
    	if(htim->Instance == TIM10)	//Przepełnienie timera nr 10 -> debouncing przycisków
    	{
+   		//FUNKCJA RESET - WSZYSTKIE TRZY PRZYCISKI WCIŚNIĘTE
+   		if(HAL_GPIO_ReadPin(GPIOB, UI_PAUSE_BUTTON) == GPIO_PIN_RESET && HAL_GPIO_ReadPin(GPIOB, UI_PLAYER1_BUTTON) == GPIO_PIN_RESET && HAL_GPIO_ReadPin(GPIOB, UI_PLAYER2_BUTTON) == GPIO_PIN_RESET)
+   		{
+   			//Na razie programowo
+   			int i;
+   			for(i = 0; i < 1000000; ++i);
+   			NVIC_SystemReset();
+   		}
+
    		if(HAL_GPIO_ReadPin(GPIOB, UI_PAUSE_BUTTON) == GPIO_PIN_RESET)			//Przycisk pauzy
    		{
    			if(_presetSelect != -1)		//Wciśnięcie przysicku pauzy rozpoczyna rozgrywkę
